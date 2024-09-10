@@ -23,20 +23,23 @@ namespace Beurscafe
             Orders = 0;
         }
 
-        // Method to adjust the price based on orders
+        // Adjust the price based on orders
         public void AdjustPrice()
         {
             if (Orders > 0)
             {
-                CurrentPrice += Orders * 0.10;  // Increase based on total orders
-                if (CurrentPrice > MaxPrice) CurrentPrice = MaxPrice;
+                // Increase the price based on orders
+                CurrentPrice += Orders * 0.10;  // Increase by 0.10 per order
+                if (CurrentPrice > MaxPrice) CurrentPrice = MaxPrice;  // Ensure it doesn't exceed the max price
             }
             else
             {
-                CurrentPrice -= 0.10;  // Decrease if no orders
-                if (CurrentPrice < MinPrice) CurrentPrice = MinPrice;
+                // Decrease the price by a fixed amount if no orders were made
+                CurrentPrice -= 0.10;
+                if (CurrentPrice < MinPrice) CurrentPrice = MinPrice;  // Ensure it doesn't go below the min price
             }
         }
+
 
     }
 }

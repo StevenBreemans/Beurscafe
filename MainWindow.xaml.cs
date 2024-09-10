@@ -23,8 +23,9 @@ namespace Beurscafe
 
         // List to store all drinks
         private List<Drinks> drinksList = new List<Drinks>();
-        // List to store the order in which drinks are clicked
-        private List<Drinks> orderedDrinks = new List<Drinks>();
+        // List to store the ordered drinks with their separate order counts
+        private List<OrderedDrink> orderedDrinks = new List<OrderedDrink>();
+        private bool isTimerPopupOpen = false;
 
 
         private Drinks beer;
@@ -125,21 +126,13 @@ namespace Beurscafe
             }
             else
             {
-                // Adjust prices when timer reaches zero
+                // Adjust prices when the timer reaches zero
                 AdjustPrices();
-                PopulateOrderDrinksTab();
 
                 // Reset the timer to either the custom or default value
-                if (customTimerSet)
-                {
-                    timeRemaining = originalTimeRemaining;  // Reset to custom time
-                }
-                else
-                {
-                    timeRemaining = defaultTimeRemaining; // Reset to default 5 minutes
-                }
+                timeRemaining = customTimerSet ? originalTimeRemaining : defaultTimeRemaining;
 
-                // Reset the orders and update the order count display
+                // Clear orders and update the right-side panel
                 ResetOrders();
                 UpdateOrderCountDisplay();
 
@@ -148,14 +141,18 @@ namespace Beurscafe
             }
         }
 
-        // Reset orders for all drinks
+
+        // Reset orders for all drinks in the orderedDrinks list
         private void ResetOrders()
         {
+            orderedDrinks.Clear();  // Clear the ordered drinks list
             foreach (var drink in drinksList)
             {
-                drink.Orders = 0;  // Reset the order count for each drink
+                drink.Orders = 0;  // Reset the order count for each drink in the drinks list
             }
+            UpdateOrderCountDisplay();  // Update the right-side display after resetting
         }
+
 
         // Method to update the TimerTabItem's header dynamically
         private void UpdateTimerDisplay()
@@ -168,32 +165,48 @@ namespace Beurscafe
         // Event handler for TabControl SelectionChanged
         private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (MainTabControl.SelectedItem == TimerTabItem)
+            // If the selected tab is the TimerTabItem and the popup is not open
+            if (MainTabControl.SelectedItem == TimerTabItem && !isTimerPopupOpen)
             {
-                // Timer tab is clicked, show the dialog
+                // Set the flag to indicate that the popup is currently open
+                isTimerPopupOpen = true;
+
+                // Immediately switch back to the last selected tab
+                MainTabControl.SelectedIndex = lastSelectedIndex;
+
+                // Show the dialog for adjusting the timer
                 string input = Microsoft.VisualBasic.Interaction.InputBox("Enter new time in minutes:", "Adjust Timer", "5");
 
-                if (int.TryParse(input, out int newMinutes))
+                // Handle the case where the user clicks "Cancel" or provides no input
+                if (!string.IsNullOrEmpty(input))
                 {
-                    // Set the new remaining time based on user input
-                    timeRemaining = TimeSpan.FromSeconds(newMinutes);
-                    UpdateTimerDisplay();  // Update the header with the new time
-                    // Save the original custom time
-                    originalTimeRemaining = timeRemaining;                      
-                    // Mark that a custom timer is set
-                    customTimerSet = true;
-                }
-                else
-                {
-                    MessageBox.Show("Invalid input. Please enter a valid number.");
+                    // Try parsing the input
+                    if (int.TryParse(input, out int newMinutes))
+                    {
+                        // Set the new remaining time based on user input
+                        timeRemaining = TimeSpan.FromSeconds(newMinutes);  // Use minutes here
+                        UpdateTimerDisplay();  // Update the header with the new time
+
+                        // Save the original custom time
+                        originalTimeRemaining = timeRemaining;
+                        customTimerSet = true;  // Mark that a custom timer is set
+                    }
+                    else
+                    {
+                        // Show the message only if the input was invalid (not empty or cancel)
+                        MessageBox.Show("Invalid input. Please enter a valid number.");
+                    }
                 }
 
-                // Switch back to the previous tab after the dialog
-                MainTabControl.SelectedIndex = lastSelectedIndex;
+                // After the dialog interaction, reset the flag to allow future popups
+                isTimerPopupOpen = false;
             }
             else
             {
-                // Handle the other tabs normally and keep track of the last selected index
+                // Save the currently selected tab index when any tab other than the TimerTabItem is selected
+                lastSelectedIndex = MainTabControl.SelectedIndex;
+
+                // Handle other tab actions normally
                 if (MainTabControl.SelectedIndex == 1)  // View Edit Drinks tab (Index 1)
                 {
                     PopulateEditDrinksTab();
@@ -203,10 +216,11 @@ namespace Beurscafe
                     PopulateOrderDrinksTab();  // Refresh the Order Drinks tab
                 }
 
-                // Save the currently selected tab index
-                lastSelectedIndex = MainTabControl.SelectedIndex;
+                // Reset the flag if switching to any other tab
+                isTimerPopupOpen = false;
             }
         }
+
 
         private void AdjustPrices()
         {
@@ -216,8 +230,10 @@ namespace Beurscafe
                 drink.Orders = 0;  // Reset orders to 0 after adjusting prices
             }
 
-            // You could also update the buttons' content to reflect new prices if necessary
+            // Update the left side of the screen with new prices
+            PopulateOrderDrinksTab();
         }
+
 
         // Universal event handler for ordering drinks
         private void OrderDrink_Click(object sender, RoutedEventArgs e)
@@ -229,17 +245,32 @@ namespace Beurscafe
                 // Get the drink name from the Tag property
                 string drinkName = clickedButton.Tag.ToString();
 
-                // Find the drink in the list based on the name
+                // Find the drink in the drinksList based on the name
                 Drinks clickedDrink = drinksList.Find(drink => drink.Name == drinkName);
 
                 if (clickedDrink != null)
                 {
-                    // Increment the orders for the clicked drink
+                    // Check if the last item in the ordered list is the same drink
+                    if (orderedDrinks.Count > 0 && orderedDrinks.Last().Drink == clickedDrink)
+                    {
+                        // Increment the orders for the last item
+                        orderedDrinks.Last().Orders++;
+                    }
+                    else
+                    {
+                        // Add a new entry for this drink to the ordered list
+                        orderedDrinks.Add(new OrderedDrink(clickedDrink));
+                    }
+
+                    // Increment the order count for the drink itself
                     clickedDrink.Orders++;
-                    UpdateOrderCountDisplay();  // Refresh the right panel with updated counts
+
+                    // Update the display with the new order counts
+                    UpdateOrderCountDisplay();
                 }
             }
         }
+
 
         private void UpdateOrderCountDisplay()
         {
@@ -247,22 +278,21 @@ namespace Beurscafe
             OrderCountPanel.Children.Clear();
             double totalSum = 0;
 
-            foreach (var drink in drinksList)
+            foreach (var orderedDrink in orderedDrinks)
             {
-                if (drink.Orders > 0)
+                if (orderedDrink.Orders > 0)
                 {
-                    // Use the null-coalescing operator ?? to handle null values
-                    double drinkPrice = drink.CurrentPrice ?? 0; // Default to 0 if null
-                    double drinkTotal = drink.Orders * drinkPrice;
+                    double drinkPrice = orderedDrink.Drink.CurrentPrice ?? 0; // Default to 0 if null
+                    double drinkTotal = orderedDrink.Orders * drinkPrice;
 
-                    // Create a Grid to structure the layout
+                    // Create a Grid to structure the layout (similar to your existing code)
                     Grid drinkGrid = new Grid
                     {
                         Margin = new Thickness(0, 15, 0, 0),  // Add space between rows
                         HorizontalAlignment = HorizontalAlignment.Stretch // Ensure full-width usage
                     };
 
-                    // Define three columns, each taking 1/3 of the available width
+                    // Define three columns
                     drinkGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     drinkGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     drinkGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -270,10 +300,10 @@ namespace Beurscafe
                     // TextBlock for drink name
                     TextBlock drinkTextBlock = new TextBlock
                     {
-                        Text = $"{drink.Name}:",
+                        Text = $"{orderedDrink.Drink.Name}:",
                         FontSize = 40,
                         VerticalAlignment = VerticalAlignment.Center,
-                        HorizontalAlignment = HorizontalAlignment.Center, // Left-align drink name
+                        HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(20, 0, 10, 0)
                     };
                     Grid.SetColumn(drinkTextBlock, 0); // First column
@@ -293,7 +323,7 @@ namespace Beurscafe
                         Width = 30,
                         Height = 30,
                         Margin = new Thickness(5),
-                        Tag = drink // Store the drink object in the Tag to access it in the click event
+                        Tag = orderedDrink // Store the orderedDrink object in the Tag
                     };
                     minusButton.Click += MinusButton_Click;
                     buttonStack.Children.Add(minusButton);
@@ -301,7 +331,7 @@ namespace Beurscafe
                     // TextBlock for drink orders count
                     TextBlock ordersTextBlock = new TextBlock
                     {
-                        Text = $"{drink.Orders}",
+                        Text = $"{orderedDrink.Orders}",
                         FontSize = 40,
                         VerticalAlignment = VerticalAlignment.Center,
                         Margin = new Thickness(10, 0, 10, 0)
@@ -315,12 +345,12 @@ namespace Beurscafe
                         Width = 30,
                         Height = 30,
                         Margin = new Thickness(5),
-                        Tag = drink // Store the drink object in the Tag to access it in the click event
+                        Tag = orderedDrink // Store the orderedDrink object in the Tag
                     };
                     plusButton.Click += PlusButton_Click;
                     buttonStack.Children.Add(plusButton);
 
-                    Grid.SetColumn(buttonStack, 1); // Second column for buttons and count
+                    Grid.SetColumn(buttonStack, 1); // Second column
                     drinkGrid.Children.Add(buttonStack);
 
                     // TextBlock for showing the total price for the drink
@@ -329,7 +359,7 @@ namespace Beurscafe
                         Text = $"= {drinkTotal:F2} EUR",
                         FontSize = 40,
                         VerticalAlignment = VerticalAlignment.Center,
-                        HorizontalAlignment = HorizontalAlignment.Center, // Right-align the total price
+                        HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(10, 0, 20, 0)
                     };
                     Grid.SetColumn(drinkTotalTextBlock, 2); // Third column
