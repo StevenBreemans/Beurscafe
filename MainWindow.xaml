@@ -23,62 +23,70 @@
                         <!-- Half for order count -->
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left side: WrapPanel for drinks arranged in a grid-like manner -->
-                    <WrapPanel Grid.Column="0" x:Name="DrinksPanel" Orientation="Horizontal" Margin="20" ItemWidth="250" ItemHeight="100">
-                        <!-- Buttons for existing drinks (beer, wine, etc.) -->
-                        <Button x:Name="ButtonBeer" Content="Bier - 2.0 EUR" Width="150" Height="50" Margin="10" Tag="Beer" Click="OrderDrink_Click"/>
-                        <Button x:Name="ButtonWine" Content="Wijn - 3.0 EUR" Width="150" Height="50" Margin="10" Tag="Wine" Click="OrderDrink_Click"/>
-                    </WrapPanel>
+                    <!-- Left side: Scrollable WrapPanel for drinks -->
+                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="DrinksPanel" Orientation="Horizontal" Margin="20" ItemWidth="250" ItemHeight="100">
+                            <!-- Buttons for existing drinks (beer, wine, etc.) -->
+                            <Button x:Name="ButtonBeer" Content="Bier - 2.0 EUR" Width="150" Height="50" Margin="10" Tag="Beer" Click="OrderDrink_Click"/>
+                            <Button x:Name="ButtonWine" Content="Wijn - 3.0 EUR" Width="150" Height="50" Margin="10" Tag="Wine" Click="OrderDrink_Click"/>
+                        </WrapPanel>
+                    </ScrollViewer>
 
                     <!-- Vertical Border between the columns -->
                     <Border Grid.Column="1" Background="Black" Width="10" VerticalAlignment="Stretch" Margin="0" />
 
-                    <!-- Right side: Grid for ordered drinks and total sum -->
-                    <Grid Grid.Column="2" Margin="20">
-                        <Grid.RowDefinitions>
-                            <!-- 90% for ordered drinks -->
-                            <RowDefinition Height="9*" />
-                            <!-- 10% for total sum -->
-                            <RowDefinition Height="1*" />
-                        </Grid.RowDefinitions>
+                    <!-- Right side: Scrollable Grid for ordered drinks and total sum -->
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                        <Grid Margin="20">
+                            <Grid.RowDefinitions>
+                                <!-- 90% for ordered drinks -->
+                                <RowDefinition Height="9*" />
+                                <!-- 10% for total sum -->
+                                <RowDefinition Height="1*" />
+                            </Grid.RowDefinitions>
 
-                        <!-- Static TextBlock for the header (outside of the dynamic OrderCountPanel) -->
-                        <TextBlock Grid.Row="0" 
-                       Text="Drinks Ordered this round:" 
-                       FontWeight="Bold" 
-                       FontSize="45" 
-                       Margin="0,0,0,10" 
-                       HorizontalAlignment="Center"/>
+                            <!-- Static TextBlock for the header (outside of the dynamic OrderCountPanel) -->
+                            <TextBlock Grid.Row="0" 
+                               Text="Drinks Ordered this round:" 
+                               FontWeight="Bold" 
+                               FontSize="45" 
+                               Margin="0,0,0,10" 
+                               HorizontalAlignment="Center"/>
 
-                        <!-- StackPanel for displaying ordered drinks (top 90%) -->
-                        <StackPanel Grid.Row="0" 
-                        x:Name="OrderCountPanel" 
-                        VerticalAlignment="Top" 
-                        Margin="0, 50, 0, 0">
-                            <!-- Ordered drinks will be added dynamically here -->
-                        </StackPanel>
+                            <!-- StackPanel for displaying ordered drinks (top 90%) -->
+                            <StackPanel Grid.Row="0" 
+                                x:Name="OrderCountPanel" 
+                                VerticalAlignment="Top" 
+                                Margin="0, 50, 0, 0">
+                                <!-- Ordered drinks will be added dynamically here -->
+                            </StackPanel>
 
-                        <!-- Total Sum TextBlock (defined once, to be updated dynamically) -->
-                        <TextBlock Grid.Row="1"
-                       x:Name="TotalSumTextBlock"
-                       Text="Total: 0.00 EUR"
-                       FontWeight="Bold"
-                       FontSize="45"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Bottom"
-                       Margin="0,0,0,40" />
-                    </Grid>
+                            <!-- Total Sum TextBlock (defined once, to be updated dynamically) -->
+                            <TextBlock Grid.Row="1"
+                               x:Name="TotalSumTextBlock"
+                               Text="Total: 0.00 EUR"
+                               FontWeight="Bold"
+                               FontSize="45"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Bottom"
+                               Margin="0,0,0,40" />
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
             </TabItem>
 
             <!-- Tab for viewing and editing drinks -->
             <TabItem Header="View Edit Drinks">
-                <Grid>
-                    <!-- Editable fields for drinks will be dynamically added here -->
-                    <StackPanel x:Name="DrinksEditPanel" VerticalAlignment="Top" Margin="10" Grid.Row="0">
-                    </StackPanel>
-                </Grid>
+                <!-- Make the content scrollable by wrapping the StackPanel inside a ScrollViewer -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <!-- Editable fields for drinks will be dynamically added here -->
+                        <StackPanel x:Name="DrinksEditPanel" VerticalAlignment="Top" Margin="10" Grid.Row="0">
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
             </TabItem>
+
             <!-- Timer tab -->
             <TabItem Header="Resterende tijd: 5:00" x:Name="TimerTabItem">
                 <!-- Content not needed since we won't display it -->
