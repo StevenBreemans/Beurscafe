@@ -236,29 +236,18 @@ namespace Beurscafe
                 {
                     // Increment the orders for the clicked drink
                     clickedDrink.Orders++;
-
-                    // Check if the clicked drink is already the last one in the orderedDrinks list
-                    if (orderedDrinks.Count == 0 || orderedDrinks[^1] != clickedDrink)
-                    {
-                        // Add the drink to the orderedDrinks list only if it's not already the last item
-                        orderedDrinks.Add(clickedDrink);
-                    }
-
-                    // Refresh the right panel with updated counts
-                    UpdateOrderCountDisplay();
+                    UpdateOrderCountDisplay();  // Refresh the right panel with updated counts
                 }
             }
         }
-
 
         private void UpdateOrderCountDisplay()
         {
             // Clear the previous order count display
             OrderCountPanel.Children.Clear();
             double totalSum = 0;
-            //test
-            // Iterate over the orderedDrinks list (ordered by click sequence)
-            foreach (var drink in orderedDrinks)
+
+            foreach (var drink in drinksList)
             {
                 if (drink.Orders > 0)
                 {
@@ -357,7 +346,6 @@ namespace Beurscafe
             // Update the total sum TextBlock (this one is already defined in XAML)
             TotalSumTextBlock.Text = $"Total: {totalSum:F2} EUR";
         }
-
 
 
 
