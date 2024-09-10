@@ -1,0 +1,89 @@
+﻿<Window x:Class="Beurscafe.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Beurscafe"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <!-- TabControl for switching between Order Drinks and View/Edit Drinks -->
+        <TabControl x:Name="MainTabControl" Margin="0,0,0,0" SelectionChanged="MainTabControl_SelectionChanged">
+
+            <!-- Tab for ordering drinks -->
+            <TabItem Header="Order Drinks">
+                <Grid>
+                    <!-- Create a grid with two columns -->
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.5*" />
+                        <!-- Half for buttons -->
+                        <ColumnDefinition Width="10" />
+                        <!-- Add the vertical line here -->
+                        <ColumnDefinition Width="1.5*" />
+                        <!-- Half for order count -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left side: WrapPanel for drinks arranged in a grid-like manner -->
+                    <WrapPanel Grid.Column="0" x:Name="DrinksPanel" Orientation="Horizontal" Margin="20" ItemWidth="250" ItemHeight="100">
+                        <!-- Buttons for existing drinks (beer, wine, etc.) -->
+                        <Button x:Name="ButtonBeer" Content="Bier - 2.0 EUR" Width="150" Height="50" Margin="10" Tag="Beer" Click="OrderDrink_Click"/>
+                        <Button x:Name="ButtonWine" Content="Wijn - 3.0 EUR" Width="150" Height="50" Margin="10" Tag="Wine" Click="OrderDrink_Click"/>
+                    </WrapPanel>
+
+                    <!-- Vertical Border between the columns -->
+                    <Border Grid.Column="1" Background="Black" Width="10" VerticalAlignment="Stretch" Margin="0" />
+
+                    <!-- Right side: Grid for ordered drinks and total sum -->
+                    <Grid Grid.Column="2" Margin="20">
+                        <Grid.RowDefinitions>
+                            <!-- 90% for ordered drinks -->
+                            <RowDefinition Height="9*" />
+                            <!-- 10% for total sum -->
+                            <RowDefinition Height="1*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Static TextBlock for the header (outside of the dynamic OrderCountPanel) -->
+                        <TextBlock Grid.Row="0" 
+                       Text="Drinks Ordered this round:" 
+                       FontWeight="Bold" 
+                       FontSize="45" 
+                       Margin="0,0,0,10" 
+                       HorizontalAlignment="Center"/>
+
+                        <!-- StackPanel for displaying ordered drinks (top 90%) -->
+                        <StackPanel Grid.Row="0" 
+                        x:Name="OrderCountPanel" 
+                        VerticalAlignment="Top" 
+                        Margin="0, 50, 0, 0">
+                            <!-- Ordered drinks will be added dynamically here -->
+                        </StackPanel>
+
+                        <!-- Total Sum TextBlock (defined once, to be updated dynamically) -->
+                        <TextBlock Grid.Row="1"
+                       x:Name="TotalSumTextBlock"
+                       Text="Total: 0.00 EUR"
+                       FontWeight="Bold"
+                       FontSize="45"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Bottom"
+                       Margin="0,0,0,40" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab for viewing and editing drinks -->
+            <TabItem Header="View Edit Drinks">
+                <Grid>
+                    <!-- Editable fields for drinks will be dynamically added here -->
+                    <StackPanel x:Name="DrinksEditPanel" VerticalAlignment="Top" Margin="10" Grid.Row="0">
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <!-- Timer tab -->
+            <TabItem Header="Resterende tijd: 5:00" x:Name="TimerTabItem">
+                <!-- Content not needed since we won't display it -->
+            </TabItem>
+
+        </TabControl>
+    </Grid>
+</Window>
