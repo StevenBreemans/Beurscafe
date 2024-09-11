@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Media;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,6 +11,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+
+using System.Media;  // Add this for SoundPlayer
 
 namespace Beurscafe
 {
@@ -116,6 +119,27 @@ namespace Beurscafe
             timer.Start();
         }
 
+        // Method to play the sound when the timer reaches 0
+        private void PlaySound()
+        {
+            try
+            {
+                // Assuming the .wav file is in the Resources folder
+                string soundFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "WallStreetOpeningBell.wav");
+
+                // Create a new SoundPlayer and play the sound
+                SoundPlayer player = new SoundPlayer(soundFilePath);
+                player.Play();  // Play the sound asynchronously
+            }
+            catch (Exception ex)
+            {
+                // Handle any issues like missing file
+                MessageBox.Show("Error playing sound: " + ex.Message);
+            }
+        }
+
+
+
         private void Timer_Tick(object? sender, EventArgs e)
         {
             if (timeRemaining > TimeSpan.Zero)
@@ -126,6 +150,9 @@ namespace Beurscafe
             }
             else
             {
+                // Play sound when the timer hits 0
+                PlaySound();
+
                 // Adjust prices when the timer reaches zero
                 AdjustPrices();
 
