@@ -77,14 +77,11 @@
 
             <!-- Tab for viewing and editing drinks -->
             <TabItem Header="View Edit Drinks">
-                <!-- Make the content scrollable by wrapping the StackPanel inside a ScrollViewer -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid>
                         <!-- Editable fields for drinks will be dynamically added here -->
-                        <StackPanel x:Name="DrinksEditPanel" VerticalAlignment="Top" Margin="10" Grid.Row="0">
+                    <StackPanel x:Name="DrinksEditPanel" VerticalAlignment="Top" Margin="10" Grid.Row="0">
                         </StackPanel>
                     </Grid>
-                </ScrollViewer>
             </TabItem>
 
             <!-- Timer tab -->

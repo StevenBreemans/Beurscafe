@@ -494,79 +494,105 @@ namespace Beurscafe
         }
 
         // Helper method to add a row for a drink
+        // Helper method to add a row for a drink
         private void AddDrinkRow(Grid grid, Drinks drink, ref int row, bool isNew)
         {
-            // Common settings for all controls
-            double fontSize = 40;
-            double textBoxWidth = 100;
+            // Define commonly used values
+            Thickness rowTopMargin = new Thickness(0, 40, 0, 0);  // 40px top margin
+            double textBoxWidth = 200;
+            double priceBoxWidth = 100;
             double buttonWidth = 100;
-            Thickness rowTopMargin = new Thickness(0, 40, 0, 0);  // 40px top margin only
-            HorizontalAlignment horizontalAlignment = HorizontalAlignment.Center;  // Correct capitalization
+            double fontSize = 40;
+            HorizontalAlignment textAlignment = HorizontalAlignment.Center;
             VerticalAlignment verticalAlignment = VerticalAlignment.Center;
+            Thickness priceMargin = new Thickness(10, 0, 10, 0);  // Used for price TextBoxes and buttons
+            double messageFontSize = 30;
 
             // Add a row for the drink
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Create TextBox method to simplify creation of text boxes
-            TextBox CreateTextBox(string text, double width) => new TextBox
+            // Drink Name
+            TextBox nameTextBox = new TextBox
             {
-                Text = text,
-                Width = width,
+                Text = drink.Name,
+                Width = textBoxWidth,
                 FontSize = fontSize,
-                HorizontalContentAlignment = horizontalAlignment,
+                HorizontalContentAlignment = textAlignment,
                 VerticalAlignment = verticalAlignment,
                 Margin = rowTopMargin
             };
-
-            // Create TextBoxes for drink information
-            TextBox nameTextBox = CreateTextBox(drink.Name, 200);  // Name TextBox
-            TextBox minPriceTextBox = CreateTextBox(drink.MinPrice.ToString(), textBoxWidth);
-            TextBox maxPriceTextBox = CreateTextBox(drink.MaxPrice.ToString(), textBoxWidth);
-            TextBox currentPriceTextBox = CreateTextBox(drink.CurrentPrice.ToString(), textBoxWidth);
-
-            // Place TextBoxes in the grid
             Grid.SetRow(nameTextBox, row);
             Grid.SetColumn(nameTextBox, 0);
             grid.Children.Add(nameTextBox);
 
+            // Min Price
+            TextBox minPriceTextBox = new TextBox
+            {
+                Text = drink.MinPrice.ToString(),
+                Width = priceBoxWidth,
+                FontSize = fontSize,
+                HorizontalContentAlignment = textAlignment,
+                VerticalAlignment = verticalAlignment,
+                Margin = rowTopMargin
+            };
             Grid.SetRow(minPriceTextBox, row);
             Grid.SetColumn(minPriceTextBox, 1);
             grid.Children.Add(minPriceTextBox);
 
+            // Max Price
+            TextBox maxPriceTextBox = new TextBox
+            {
+                Text = drink.MaxPrice.ToString(),
+                Width = priceBoxWidth,
+                FontSize = fontSize,
+                HorizontalContentAlignment = textAlignment,
+                VerticalAlignment = verticalAlignment,
+                Margin = priceMargin
+            };
             Grid.SetRow(maxPriceTextBox, row);
             Grid.SetColumn(maxPriceTextBox, 2);
             grid.Children.Add(maxPriceTextBox);
 
+            // Current Price
+            TextBox currentPriceTextBox = new TextBox
+            {
+                Text = drink.CurrentPrice.ToString(),
+                Width = priceBoxWidth,
+                FontSize = fontSize,
+                HorizontalContentAlignment = textAlignment,
+                VerticalAlignment = verticalAlignment,
+                Margin = priceMargin
+            };
             Grid.SetRow(currentPriceTextBox, row);
             Grid.SetColumn(currentPriceTextBox, 3);
             grid.Children.Add(currentPriceTextBox);
 
-            // Create and place Save button
+            // Save Button
             Button saveButton = new Button
             {
                 Content = "Save",
                 Width = buttonWidth,
                 FontSize = fontSize,
                 VerticalAlignment = verticalAlignment,
-                Margin = rowTopMargin
+                Margin = new Thickness(10, 0, 0, 0)
             };
             Grid.SetRow(saveButton, row);
             Grid.SetColumn(saveButton, 4);
             grid.Children.Add(saveButton);
 
-            // Add a new row for the message label
+            // Create a new row below for the message label with initial height 10
             RowDefinition messageRow = new RowDefinition { Height = new GridLength(10) };
             grid.RowDefinitions.Add(messageRow);
 
-            // Create and place Message Label
+            // Message Label (Placed below the row for the current drink)
             Label messageLabel = new Label
             {
                 Foreground = Brushes.Red,
                 Visibility = Visibility.Hidden,
-                FontSize = 30,  // Set font size to 30
-                HorizontalAlignment = horizontalAlignment,  // Center horizontally
-                VerticalAlignment = verticalAlignment,  // Center vertically
-                Margin = new Thickness(10, 0, 10, 0)  // You can adjust the margin if needed
+                HorizontalAlignment = HorizontalAlignment.Center, // Centered horizontally
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = messageFontSize,  // Font size 30
+                Margin = new Thickness(10, 0, 0, 0)
             };
             Grid.SetRow(messageLabel, row + 1);  // Row under the drink's inputs
             Grid.SetColumn(messageLabel, 0);  // Align the message under the drink name column
@@ -578,14 +604,14 @@ namespace Beurscafe
             {
                 string newName = nameTextBox.Text;
 
-                // Validation logic (this part remains the same)
+                // Regex for validating that the name contains only letters
                 if (string.IsNullOrWhiteSpace(newName) || !Regex.IsMatch(newName, @"^[a-zA-Z]+$"))
                 {
                     messageLabel.Content = "Drink name must contain only letters.";
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
                     messageRow.Height = GridLength.Auto;  // Show the message row
-                    return;
+                    return;  // Stop execution if the name is invalid
                 }
 
                 // Replace ',' with '.' to ensure parsing works for both decimal formats
@@ -593,14 +619,14 @@ namespace Beurscafe
                 string maxPriceText = maxPriceTextBox.Text.Replace(',', '.');
                 string currentPriceText = currentPriceTextBox.Text.Replace(',', '.');
 
-                // Validation for price values
+                // Check if the prices are valid numbers
                 if (!double.TryParse(minPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double newMinPrice))
                 {
                     messageLabel.Content = "Min price must be a valid number.";
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;
-                    return;
+                    messageRow.Height = GridLength.Auto;  // Show the message row
+                    return;  // Stop execution if min price is invalid
                 }
 
                 if (!double.TryParse(maxPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double newMaxPrice))
@@ -608,8 +634,8 @@ namespace Beurscafe
                     messageLabel.Content = "Max price must be a valid number.";
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;
-                    return;
+                    messageRow.Height = GridLength.Auto;  // Show the message row
+                    return;  // Stop execution if max price is invalid
                 }
 
                 if (!double.TryParse(currentPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double newCurrentPrice))
@@ -617,44 +643,44 @@ namespace Beurscafe
                     messageLabel.Content = "Current price must be a valid number.";
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;
-                    return;
+                    messageRow.Height = GridLength.Auto;  // Show the message row
+                    return;  // Stop execution if current price is invalid
                 }
 
-                // Additional validation logic
+                // Further validation for price values
                 if (newMinPrice >= newMaxPrice)
                 {
                     messageLabel.Content = "Min price must be less than max price.";
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;
+                    messageRow.Height = GridLength.Auto;  // Show the message row
                 }
                 else if (newCurrentPrice < newMinPrice || newCurrentPrice > newMaxPrice)
                 {
                     messageLabel.Content = $"Current price must be between {newMinPrice:F2} and {newMaxPrice:F2}.";
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;
+                    messageRow.Height = GridLength.Auto;  // Show the message row
                 }
                 else
                 {
-                    // Handle drink save logic (whether new or existing)
+                    // If this is a new drink (it hasn't been saved yet), add it to the list
                     if (isNew)
                     {
-                        // Prevent duplicates
+                        // Check if a drink with the same name already exists to prevent adding duplicates
                         var existingDrink = drinksList.Find(d => d.Name.Equals(newName, StringComparison.OrdinalIgnoreCase));
                         if (existingDrink != null)
                         {
                             return;
                         }
 
-                        // Add new drink to the list
+                        // Add the new drink to the list
                         Drinks newDrink = new Drinks(newName, newMinPrice, newMaxPrice, newCurrentPrice);
                         drinksList.Add(newDrink);
                     }
                     else
                     {
-                        // Update existing drink
+                        // Update the existing drink in the list
                         Drinks existingDrink = drinksList.Find(d => d.Name == drink.Name);
                         if (existingDrink != null)
                         {
@@ -674,7 +700,6 @@ namespace Beurscafe
 
             row += 2;  // Move to the next row (2 rows for each drink: one for inputs, one for message)
         }
-
 
         private void PopulateOrderDrinksTab()
         {
