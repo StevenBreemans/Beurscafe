@@ -55,14 +55,13 @@ namespace Beurscafe
         private TimeSpan defaultTimeRemaining = TimeSpan.FromMinutes(5);  // Default 5-minute timer
         private TimeSpan originalTimeRemaining;  // Store the original value to reset the timer
         private bool customTimerSet = false;     // Track if the custom timer is set
+        private Drinks tempNewDrink = null;  // To track the temporary new drink
 
         public MainWindow()
         {
             InitializeComponent();
 
             // Initialize drinks
-            beer = new Drinks("Beer", 1.5, 5.0, 2.0);
-            wine = new Drinks("Wine", 2.0, 6.0, 3.0);
             beer1 = new Drinks("Beer1", 1.5, 5.0, 2.0);
             wine1 = new Drinks("Wine1", 2.0, 6.0, 3.0);
             beer2 = new Drinks("Beer2", 1.5, 5.0, 2.0);
@@ -71,39 +70,19 @@ namespace Beurscafe
             wine3 = new Drinks("Wine3", 2.0, 6.0, 3.0);
             beer4 = new Drinks("Beer4", 1.5, 5.0, 2.0);
             wine4 = new Drinks("Wine4", 2.0, 6.0, 3.0);
-            beer5 = new Drinks("Beer5", 1.5, 5.0, 2.0);
-            wine5 = new Drinks("Wine5", 2.0, 6.0, 3.0);
-            beer6 = new Drinks("Beer6", 1.5, 5.0, 2.0);
-            wine6 = new Drinks("Wine6", 2.0, 6.0, 3.0);
-            beer7 = new Drinks("Beer7", 1.5, 5.0, 2.0);
-            wine7 = new Drinks("Wine7", 2.0, 6.0, 3.0);
-            beer8 = new Drinks("Beer8", 1.5, 5.0, 2.0);
-            wine8 = new Drinks("Wine8", 2.0, 6.0, 3.0);
-            beer9 = new Drinks("Beer9", 1.5, 5.0, 2.0);
-            wine9 = new Drinks("Wine9", 2.0, 6.0, 3.0);
+
 
             // Add drinks to the list
-            drinksList.Add(beer);
             drinksList.Add(beer1);
             drinksList.Add(beer2);
             drinksList.Add(beer3);
             drinksList.Add(beer4);
-            drinksList.Add(beer5);
-            drinksList.Add(beer6);
-            drinksList.Add(beer7);
-            drinksList.Add(beer8);
-            drinksList.Add(beer9);
 
-            drinksList.Add(wine);
             drinksList.Add(wine1);
             drinksList.Add(wine2);
             drinksList.Add(wine3);
             drinksList.Add(wine4);
-            drinksList.Add(wine5);
-            drinksList.Add(wine6);
-            drinksList.Add(wine7);
-            drinksList.Add(wine8);
-            drinksList.Add(wine9);
+
 
             // Set the timer to 5 minutes initially
             timeRemaining = defaultTimeRemaining;
@@ -245,6 +224,14 @@ namespace Beurscafe
 
                 // Reset the flag if switching to any other tab
                 isTimerPopupOpen = false;
+            }
+
+            // Automatically discard any unsaved drink when switching away from the View/Edit Drinks tab
+            if (tempNewDrink != null && MainTabControl.SelectedIndex != 1)
+            {
+                // Discard the new drink automatically without confirmation
+                tempNewDrink = null;
+                PopulateEditDrinksTab();  // Refresh the Edit Drinks tab to remove the unsaved row
             }
         }
 
@@ -434,36 +421,54 @@ namespace Beurscafe
                 UpdateOrderCountDisplay();  // Refresh the display
             }
         }
+        private void AddNewDrinkButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Check if there's already an unsaved new drink, if so, skip adding another
+            if (tempNewDrink != null)
+            {
+                MessageBox.Show("Please save or discard the current new drink before adding another.");
+                return;
+            }
+
+            // Create a new temporary drink with empty fields
+            tempNewDrink = new Drinks("", null, null, null);
+
+            // Add a new row with empty fields
+            int newRow = drinksList.Count + 1;  // New row after the last drink
+            PopulateEditDrinksTab(newRow, tempNewDrink, isNew: true);  // Add the new empty row
+        }
 
 
-        private void PopulateEditDrinksTab()
+        private void PopulateEditDrinksTab(int newRow = -1, Drinks newDrink = null, bool isNew = false)
         {
             DrinksEditPanel.Children.Clear();
 
             Grid grid = new Grid();
             grid.Margin = new Thickness(10);
 
-            // Define six equal columns
+            // Define five columns (Drink Name, Min Price, Max Price, Current Price, Save Button)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Drink name
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Min price
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Max price
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Current price
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Save button
-            //grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Add new drink button
 
             // Add header row
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             AddHeaderToGrid(grid);
 
-
             // Create a row for each existing drink in the list
-            int row = 1;
+            int currentRow = 1;
             foreach (var drink in drinksList)
             {
-                AddDrinkRow(grid, drink, ref row, isNew: false);
+                AddDrinkRow(grid, drink, ref currentRow, isNew: false);  // Add rows for existing drinks
             }
 
-            // Add the "Add New Drink" button to the same grid
+            // If there's a new drink to add, append it to the end or at a specified position
+            if (newDrink != null && isNew)
+            {
+                AddDrinkRow(grid, newDrink, ref currentRow, isNew: true);  // Add the new empty row
+            }
             Button addNewDrinkButton = new Button
             {
                 Content = "Add New Drink",
@@ -472,10 +477,10 @@ namespace Beurscafe
                 Margin = new Thickness(10),
                 HorizontalAlignment = HorizontalAlignment.Center
             };
+            addNewDrinkButton.Click += AddNewDrinkButton_Click;  // Attach event handler here
             Grid.SetRow(addNewDrinkButton, 0);
-            Grid.SetColumn(addNewDrinkButton, 4); // Place in the last column
+            Grid.SetColumn(addNewDrinkButton, 4);  // Place in the last column
             grid.Children.Add(addNewDrinkButton);
-
             DrinksEditPanel.Children.Add(grid);
         }
 
