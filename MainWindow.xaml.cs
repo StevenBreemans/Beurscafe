@@ -153,6 +153,18 @@ namespace Beurscafe
             }
         }
 
+        private void ShowTotalOrdersMessage()
+        {
+            StringBuilder message = new StringBuilder();
+            message.AppendLine("Total Orders per Drink:");
+
+            foreach (var drink in drinksList)
+            {
+                message.AppendLine($"{drink.Name}: {drink.Orders} orders");
+            }
+
+            MessageBox.Show(message.ToString(), "Total Orders Summary", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
 
 
         private void Timer_Tick(object? sender, EventArgs e)
@@ -170,6 +182,9 @@ namespace Beurscafe
 
                 // Adjust prices when the timer reaches zero
                 AdjustPrices();
+
+                // Show total ordered drinks message box
+                ShowTotalOrdersMessage();
 
                 // Reset the timer to either the custom or default value
                 timeRemaining = customTimerSet ? originalTimeRemaining : defaultTimeRemaining;
@@ -292,6 +307,7 @@ private async void AdjustPrices()
 
 
         // Universal event handler for ordering drinks
+        // Universal event handler for ordering drinks
         private void OrderDrink_Click(object sender, RoutedEventArgs e)
         {
             Button clickedButton = sender as Button;
@@ -306,19 +322,19 @@ private async void AdjustPrices()
 
                 if (clickedDrink != null)
                 {
-                    // Check if the last item in the ordered list is the same drink
+                    // Check if the last item in the orderedDrinks list is the same drink
                     if (orderedDrinks.Count > 0 && orderedDrinks.Last().Drink == clickedDrink)
                     {
-                        // Increment the orders for the last item
+                        // If it is the last ordered drink, increment the Orders count for that entry
                         orderedDrinks.Last().Orders++;
                     }
                     else
                     {
-                        // Add a new entry for this drink to the ordered list
+                        // Otherwise, create a new entry for the drink in the orderedDrinks list (allowing duplicates)
                         orderedDrinks.Add(new OrderedDrink(clickedDrink));
                     }
 
-                    // Increment the order count for the drink itself
+                    // Update the total orders count for the drink in the Drinks class
                     clickedDrink.Orders++;
 
                     // Update the display with the new order counts
@@ -326,6 +342,8 @@ private async void AdjustPrices()
                 }
             }
         }
+
+
 
 
         private void UpdateOrderCountDisplay()
