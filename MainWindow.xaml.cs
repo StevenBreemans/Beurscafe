@@ -153,18 +153,7 @@ namespace Beurscafe
             }
         }
 
-        private void ShowTotalOrdersMessage()
-        {
-            StringBuilder message = new StringBuilder();
-            message.AppendLine("Total Orders per Drink:");
 
-            foreach (var drink in drinksList)
-            {
-                message.AppendLine($"{drink.Name}: {drink.Orders} orders");
-            }
-
-            MessageBox.Show(message.ToString(), "Total Orders Summary", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
 
 
         private void Timer_Tick(object? sender, EventArgs e)
@@ -182,9 +171,6 @@ namespace Beurscafe
 
                 // Adjust prices when the timer reaches zero
                 AdjustPrices();
-
-                // Show total ordered drinks message box
-                ShowTotalOrdersMessage();
 
                 // Reset the timer to either the custom or default value
                 timeRemaining = customTimerSet ? originalTimeRemaining : defaultTimeRemaining;
@@ -285,24 +271,94 @@ namespace Beurscafe
                 PopulateEditDrinksTab();  // Refresh the Edit Drinks tab to remove the unsaved row
             }
         }
+        private async void AdjustPrices()
+        {
+            StringBuilder priceChangesMessage = new StringBuilder();
+            priceChangesMessage.AppendLine("Prijswijzigingen:");
 
-private async void AdjustPrices()
-{
-    foreach (var drink in drinksList)
-    {
-        // Adjust price locally
-        drink.AdjustPrice();
+            // Sort drinks by the number of orders in descending order
+            var sortedDrinks = drinksList.OrderByDescending(d => d.Orders).ToList();
 
-        // Reset orders to 0 after adjusting prices
-        drink.Orders = 0;
+            // Check if no orders have been placed
+            bool noOrdersPlaced = sortedDrinks.All(d => d.Orders == 0);
 
-        // Update the drink in Firestore with the new adjusted price and reset order count
-        await firebaseManager.AddDrinkToFirestore(drink);  // Update Firestore with the new price and orders
-    }
+            // If no orders were placed, skip price increases but allow price decreases
+            if (noOrdersPlaced)
+            {
+                priceChangesMessage.AppendLine("Er zijn geen bestellingen geplaatst. Geen prijsstijgingen, alleen prijsdalingen zullen plaatsvinden.");
+            }
+            else
+            {
+                // (Top 3 price adjustment code...)
+            }
 
-    // Update the left side of the screen with new prices
-    PopulateOrderDrinksTab();
-}
+            // Handle drinks that have not been ordered at all
+            var notOrderedDrinks = drinksList.Where(d => d.Orders == 0).ToList();
+
+            if (notOrderedDrinks.Count > 0)
+            {
+                // Filter out drinks that are within 1.0 of their max price
+                var eligibleDrinksForMinPrice = notOrderedDrinks.Where(d => d.CurrentPrice <= d.MaxPrice - 1.0).ToList();
+
+                // Declare selectedDrink outside the if block for scope purposes
+                Drinks selectedDrink = null;
+
+                // Introduce a 60% chance for lowering one drink to the minimum price
+                Random random = new Random();
+                if (eligibleDrinksForMinPrice.Count > 0 && random.NextDouble() <= 0.6)  // 60% chance
+                {
+                    selectedDrink = eligibleDrinksForMinPrice[random.Next(eligibleDrinksForMinPrice.Count)];
+                    priceChangesMessage.AppendLine($"{selectedDrink.Name}: heeft een kans van 60% en is verlaagd naar de minimumprijs.");
+                    selectedDrink.CurrentPrice = selectedDrink.MinPrice;
+                }
+
+                // Decrease the price of the remaining unordered drinks by a random value between 0.2 and 1.5
+                foreach (var drink in notOrderedDrinks.Where(d => d != selectedDrink))
+                {
+                    double decrease = GetRandomNumber(0.2, 1.5);
+                    double oldPrice = drink.CurrentPrice.Value;
+                    drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value - decrease), drink.MinPrice.Value);  // Ensure it doesn't go below min price
+                    priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
+                }
+            }
+
+            // Show the final message box with all price changes
+            MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Update the drinks in Firestore after adjusting prices
+            foreach (var drink in drinksList)
+            {
+                await firebaseManager.AddDrinkToFirestore(drink);  // Update Firestore with the new price
+            }
+
+            // Refresh the UI
+            PopulateOrderDrinksTab();
+        }
+
+
+
+
+
+
+        // Helper method to generate a random number between a specified range
+        private double GetRandomNumber(double minValue, double maxValue)
+        {
+            Random random = new Random();
+            return random.NextDouble() * (maxValue - minValue) + minValue;
+        }
+
+        // Helper method to round up to 1 decimal place
+        private double RoundUp(double value)
+        {
+            return Math.Ceiling(value * 10) / 10;
+        }
+
+        // Helper method to round down to 1 decimal place
+        private double RoundDown(double value)
+        {
+            return Math.Floor(value * 10) / 10;
+        }
+
 
 
 
