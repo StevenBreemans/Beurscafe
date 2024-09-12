@@ -18,4 +18,15 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Google.Cloud.Firestore" Version="3.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+  <None Update="beurscafe-4d2ec-firebase-adminsdk-bpzxc-fe2fdd0547.json">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
+
+
 </Project>

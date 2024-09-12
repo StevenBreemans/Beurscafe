@@ -30,7 +30,7 @@ namespace Beurscafe
         private List<OrderedDrink> orderedDrinks = new List<OrderedDrink>();
         private bool isTimerPopupOpen = false;
 
-
+/*
         private Drinks beer;
         private Drinks wine;
         private Drinks beer1;
@@ -50,18 +50,20 @@ namespace Beurscafe
         private Drinks beer8;
         private Drinks wine8;
         private Drinks beer9;
-        private Drinks wine9;
+        private Drinks wine9;*/
         private int lastSelectedIndex = 0;
         private TimeSpan defaultTimeRemaining = TimeSpan.FromMinutes(5);  // Default 5-minute timer
         private TimeSpan originalTimeRemaining;  // Store the original value to reset the timer
         private bool customTimerSet = false;     // Track if the custom timer is set
         private Drinks tempNewDrink = null;  // To track the temporary new drink
 
+        private FirebaseManager firebaseManager = new FirebaseManager();  // Initialize FirebaseManager
+
         public MainWindow()
         {
             InitializeComponent();
 
-            // Initialize drinks
+/*            // Initialize drinks
             beer1 = new Drinks("Beer1", 1.5, 5.0, 2.0);
             wine1 = new Drinks("Wine1", 2.0, 6.0, 3.0);
             beer2 = new Drinks("Beer2", 1.5, 5.0, 2.0);
@@ -81,7 +83,7 @@ namespace Beurscafe
             drinksList.Add(wine1);
             drinksList.Add(wine2);
             drinksList.Add(wine3);
-            drinksList.Add(wine4);
+            drinksList.Add(wine4);*/
 
 
             // Set the timer to 5 minutes initially
@@ -90,7 +92,41 @@ namespace Beurscafe
             StartTimer();
             PopulateOrderDrinksTab();
             UpdateOrderCountDisplay();  // Initialize the order count display
+
+            // Asynchronously fetch drinks from Firestore and update the UI
+            LoadDrinksFromFirestore();
         }
+
+        // Method to load drinks from Firestore and populate the UI
+        private async void LoadDrinksFromFirestore()
+        {
+            try
+            {
+                // Fetch the drinks from Firestore
+                var fetchedDrinks = await firebaseManager.GetDrinksFromFirestore();
+
+                // If there are no drinks, show a message (optional)
+                if (fetchedDrinks.Count == 0)
+                {
+                    MessageBox.Show("No drinks found in Firestore.");
+                    return;
+                }
+
+                // Clear the current drinks list
+                drinksList.Clear();
+
+                // Add fetched drinks to the local drinks list
+                drinksList.AddRange(fetchedDrinks);
+
+                // Once drinks are fetched, update the UI
+                PopulateOrderDrinksTab();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error fetching drinks from Firestore: " + ex.Message);
+            }
+        }
+
         private void StartTimer()
         {
             timer.Interval = TimeSpan.FromSeconds(1);
@@ -235,18 +271,24 @@ namespace Beurscafe
             }
         }
 
+private async void AdjustPrices()
+{
+    foreach (var drink in drinksList)
+    {
+        // Adjust price locally
+        drink.AdjustPrice();
 
-        private void AdjustPrices()
-        {
-            foreach (var drink in drinksList)
-            {
-                drink.AdjustPrice();
-                drink.Orders = 0;  // Reset orders to 0 after adjusting prices
-            }
+        // Reset orders to 0 after adjusting prices
+        drink.Orders = 0;
 
-            // Update the left side of the screen with new prices
-            PopulateOrderDrinksTab();
-        }
+        // Update the drink in Firestore with the new adjusted price and reset order count
+        await firebaseManager.AddDrinkToFirestore(drink);  // Update Firestore with the new price and orders
+    }
+
+    // Update the left side of the screen with new prices
+    PopulateOrderDrinksTab();
+}
+
 
 
         // Universal event handler for ordering drinks
@@ -452,6 +494,7 @@ namespace Beurscafe
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Max price
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Current price
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Save button
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Delete button
 
             // Add header row
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -480,6 +523,7 @@ namespace Beurscafe
             addNewDrinkButton.Click += AddNewDrinkButton_Click;  // Attach event handler here
             Grid.SetRow(addNewDrinkButton, 0);
             Grid.SetColumn(addNewDrinkButton, 4);  // Place in the last column
+            Grid.SetColumnSpan(addNewDrinkButton, 2); // Span across 2 columns (Save and Delete)
             grid.Children.Add(addNewDrinkButton);
             DrinksEditPanel.Children.Add(grid);
         }
@@ -533,7 +577,7 @@ namespace Beurscafe
             Thickness rowTopMargin = new Thickness(0, 40, 0, 0);  // 40px top margin
             double textBoxWidth = 200;
             double priceBoxWidth = 100;
-            double buttonWidth = 100;
+            double buttonWidth = 150;
             double fontSize = 40;
             HorizontalAlignment textAlignment = HorizontalAlignment.Center;
             VerticalAlignment verticalAlignment = VerticalAlignment.Center;
@@ -612,6 +656,19 @@ namespace Beurscafe
             Grid.SetColumn(saveButton, 4);
             grid.Children.Add(saveButton);
 
+            // Delete Button
+            Button deleteButton = new Button
+            {
+                Content = "Delete",
+                Width = buttonWidth,
+                FontSize = fontSize,
+                VerticalAlignment = verticalAlignment,
+                Margin = new Thickness(10, 0, 0, 0)
+            };
+            Grid.SetRow(deleteButton, row);
+            Grid.SetColumn(deleteButton, 5);
+            grid.Children.Add(deleteButton);
+
             // Create a new row below for the message label with initial height 10
             RowDefinition messageRow = new RowDefinition { Height = new GridLength(10) };
             grid.RowDefinitions.Add(messageRow);
@@ -632,9 +689,10 @@ namespace Beurscafe
             grid.Children.Add(messageLabel);
 
             // Save button click event
-            saveButton.Click += (s, args) =>
+            saveButton.Click += async (s, args) =>
             {
                 string newName = nameTextBox.Text;
+                string originalName = drink.Name; // Store the original name for reference
 
                 // Regex for validating that the name contains only letters
                 if (string.IsNullOrWhiteSpace(newName) || !Regex.IsMatch(newName, @"^[a-zA-Z]+$"))
@@ -696,39 +754,59 @@ namespace Beurscafe
                 }
                 else
                 {
-                    // If this is a new drink (it hasn't been saved yet), add it to the list
-                    if (isNew)
+                    // If the name has changed, update the Firestore document and modify the drink in place
+                    if (originalName != newName)
                     {
-                        // Check if a drink with the same name already exists to prevent adding duplicates
-                        var existingDrink = drinksList.Find(d => d.Name.Equals(newName, StringComparison.OrdinalIgnoreCase));
-                        if (existingDrink != null)
-                        {
-                            return;
-                        }
+                        // Delete the old document from Firestore
+                        await firebaseManager.DeleteDrinkFromFirestore(originalName);
 
-                        // Add the new drink to the list
-                        Drinks newDrink = new Drinks(newName, newMinPrice, newMaxPrice, newCurrentPrice);
-                        drinksList.Add(newDrink);
+                        // Update the drink in the list (do not remove it, just change its properties)
+                        drink.Name = newName;
+                        drink.MinPrice = newMinPrice;
+                        drink.MaxPrice = newMaxPrice;
+                        drink.CurrentPrice = newCurrentPrice;
+
+                        // Add the updated drink with the new name to Firestore
+                        await firebaseManager.AddDrinkToFirestore(drink);
                     }
                     else
                     {
-                        // Update the existing drink in the list
-                        Drinks existingDrink = drinksList.Find(d => d.Name == drink.Name);
-                        if (existingDrink != null)
-                        {
-                            existingDrink.Name = newName;
-                            existingDrink.MinPrice = newMinPrice;
-                            existingDrink.MaxPrice = newMaxPrice;
-                            existingDrink.CurrentPrice = newCurrentPrice;
-                        }
+                        // If the name hasn't changed, just update the other fields
+                        drink.MinPrice = newMinPrice;
+                        drink.MaxPrice = newMaxPrice;
+                        drink.CurrentPrice = newCurrentPrice;
+
+                        // Save the updated drink back to Firestore
+                        await firebaseManager.AddDrinkToFirestore(drink);  // Update Firestore
                     }
 
-                    // Clear the error message
+                    // Clear the error message and hide it
                     messageLabel.Content = "";
                     messageLabel.Visibility = Visibility.Hidden;
                     messageRow.Height = new GridLength(10);  // Hide the message row if no error
+
+                    // Refresh the Edit Drinks Tab to show the updated drink
+                    PopulateEditDrinksTab();
                 }
             };
+
+            // Delete button click event
+            deleteButton.Click += async (s, args) =>
+            {
+                MessageBoxResult result = MessageBox.Show($"Are you sure you want to delete {drink.Name}?", "Confirm Delete", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes)
+                {
+                    // Remove the drink from Firestore
+                    await firebaseManager.DeleteDrinkFromFirestore(drink.Name);
+
+                    // Remove the drink from the local list
+                    drinksList.Remove(drink);
+
+                    // Refresh the Edit Drinks Tab to show the updated list
+                    PopulateEditDrinksTab();
+                }
+            };
+
 
             row += 2;  // Move to the next row (2 rows for each drink: one for inputs, one for message)
         }
