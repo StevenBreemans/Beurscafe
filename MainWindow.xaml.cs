@@ -39,11 +39,8 @@ namespace Beurscafe
 
         private FirebaseManager firebaseManager = new FirebaseManager();  // Initialize FirebaseManager
 
-        // Add a new variable to throttle Firestore updates
-        private DateTime lastFirestoreUpdate = DateTime.MinValue;
-
-        // Throttle Firestore updates to every X seconds (5 seconds in this case)
-        private int firestoreUpdateInterval = 5;
+        // Add flag to prevent simultaneous updates
+        private bool syncingWithFirestore = false;
 
         public MainWindow()
         {
@@ -108,20 +105,34 @@ namespace Beurscafe
             StartTimer();
         }
 
-        // Update the timer when Firestore changes
+        // Firestore Listener Update handler
         private void OnFirestoreTimerUpdate(int newTimeRemaining, DateTime resetTime)
         {
-            TimeSpan elapsedTime = DateTime.UtcNow - resetTime;
-            timeRemaining = TimeSpan.FromSeconds(Math.Max(newTimeRemaining - elapsedTime.TotalSeconds, 0));
-            UpdateTimerDisplay();
-        }
+            // Prevent local updates while syncing with Firestore
+            syncingWithFirestore = true;
 
+            TimeSpan elapsedTime = DateTime.UtcNow - resetTime;
+            TimeSpan updatedTime = TimeSpan.FromSeconds(Math.Max(newTimeRemaining - elapsedTime.TotalSeconds, 0));
+
+            // Only update the timer if there's a significant difference (2 seconds)
+            if (Math.Abs((updatedTime - timeRemaining).TotalSeconds) > 2)
+            {
+                timeRemaining = updatedTime;
+                UpdateTimerDisplay();
+            }
+
+            // Sync complete, allow local updates again
+            syncingWithFirestore = false;
+        }
+        // Start the timer, ensuring single event attachment
         private void StartTimer()
         {
+            timer.Tick -= Timer_Tick; // Ensure the event handler is only attached once
             timer.Interval = TimeSpan.FromSeconds(1);
-            timer.Tick += Timer_Tick;
+            timer.Tick += Timer_Tick; // Attach the event handler
             timer.Start();
         }
+
 
         // Method to play the sound when the timer reaches 0
         private void PlaySound()
@@ -143,36 +154,31 @@ namespace Beurscafe
         }
 
 
-
-
+        // Timer Tick event handler (local timer)
+        // Timer Tick event handler (local timer)
         private async void Timer_Tick(object? sender, EventArgs e)
         {
+            if (syncingWithFirestore) return; // Skip the local update if syncing with Firestore
+
             if (timeRemaining > TimeSpan.Zero)
             {
-                // Decrease the time remaining by 1 second
                 timeRemaining = timeRemaining.Add(TimeSpan.FromSeconds(-1));
-                UpdateTimerDisplay(); // Update UI
+                UpdateTimerDisplay(); // Local timer update
 
-                // Only update Firestore every 5 seconds to avoid excessive writes
-                if ((DateTime.UtcNow - lastFirestoreUpdate).TotalSeconds >= firestoreUpdateInterval)
-                {
-                    lastFirestoreUpdate = DateTime.UtcNow;
-                    await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
-                }
+                // Update Firestore with the new time every second
+                await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
             }
             else
             {
-                // When the timer hits zero, reset it and sync with Firestore
-                PlaySound(); // Play sound when timer reaches zero
-                AdjustPrices(); // Adjust drink prices
-                ResetOrders(); // Reset orders
-
-                // Reset the time to the default or custom time
+                // Timer reaches zero: play sound, adjust prices, reset orders, reset timer
+                PlaySound();
+                AdjustPrices();
+                ResetOrders();
                 timeRemaining = customTimerSet ? originalTimeRemaining : defaultTimeRemaining;
 
-                // Immediately update Firestore with the new timer value
+                // Sync the reset timer with Firestore
                 await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
-                UpdateTimerDisplay(); // Update UI after reset
+                UpdateTimerDisplay();
             }
         }
 
@@ -189,19 +195,18 @@ namespace Beurscafe
         }
 
 
-        // Method to update the TimerTabItem's header dynamically
+        // Method to update the TimerTabItem's header dynamically (UI thread-safe)
         private void UpdateTimerDisplay()
         {
-            // Check if the current thread is the UI thread
             if (Dispatcher.CheckAccess())
             {
-                // This is the UI thread, so update directly
+                // Update the timer display directly if on UI thread
                 TabItem timerTabItem = (TabItem)MainTabControl.Items[2]; // Adjust the index if necessary
                 timerTabItem.Header = $"Resterende tijd: {timeRemaining:mm\\:ss}";
             }
             else
             {
-                // If this is not the UI thread, use the Dispatcher to update the UI safely
+                // Safely update the UI from a non-UI thread
                 Dispatcher.Invoke(() =>
                 {
                     TabItem timerTabItem = (TabItem)MainTabControl.Items[2]; // Adjust the index if necessary
