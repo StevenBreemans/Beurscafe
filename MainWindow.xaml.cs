@@ -42,6 +42,7 @@ namespace Beurscafe
         // Add flag to prevent simultaneous updates
         private bool syncingWithFirestore = false;
 
+
         public MainWindow()
         {
             InitializeComponent();
@@ -304,7 +305,63 @@ namespace Beurscafe
             }
             else
             {
-                // (Top 3 price adjustment code...)
+                // Adjust the price for the drink with the most orders (only if it has at least 1 order)
+                if (sortedDrinks.Count > 0 && sortedDrinks[0].Orders >= 1)
+                {
+                    var mostOrderedDrink = sortedDrinks[0];
+                    double increase = GetRandomNumber(0.8, mostOrderedDrink.MaxPrice.Value - mostOrderedDrink.CurrentPrice.Value);
+                    double oldPrice = mostOrderedDrink.CurrentPrice.Value;
+                    mostOrderedDrink.CurrentPrice = Math.Min(RoundUp(mostOrderedDrink.CurrentPrice.Value + increase), mostOrderedDrink.MaxPrice.Value);
+                    priceChangesMessage.AppendLine($"{mostOrderedDrink.Name}: gestegen met {mostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
+                }
+
+                // Adjust the price for the second most ordered drink (only if it has at least 1 order)
+                if (sortedDrinks.Count > 1 && sortedDrinks[1].Orders >= 1)
+                {
+                    var secondMostOrderedDrink = sortedDrinks[1];
+                    double increase = GetRandomNumber(0.4, secondMostOrderedDrink.MaxPrice.Value - 0.5 - secondMostOrderedDrink.CurrentPrice.Value);
+                    double oldPrice = secondMostOrderedDrink.CurrentPrice.Value;
+                    secondMostOrderedDrink.CurrentPrice = Math.Min(RoundUp(secondMostOrderedDrink.CurrentPrice.Value + increase), secondMostOrderedDrink.MaxPrice.Value - 0.5);
+                    priceChangesMessage.AppendLine($"{secondMostOrderedDrink.Name}: gestegen met {secondMostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
+                }
+
+                // Adjust the price for the third most ordered drink if it has been ordered at least 1 time
+                if (sortedDrinks.Count > 2 && sortedDrinks[2].Orders >= 1)
+                {
+                    var thirdMostOrderedDrink = sortedDrinks[2];
+                    double increase = GetRandomNumber(0.1, 1.0);
+                    double oldPrice = thirdMostOrderedDrink.CurrentPrice.Value;
+                    thirdMostOrderedDrink.CurrentPrice = Math.Min(RoundUp(thirdMostOrderedDrink.CurrentPrice.Value + increase), thirdMostOrderedDrink.MaxPrice.Value);
+                    priceChangesMessage.AppendLine($"{thirdMostOrderedDrink.Name}: gestegen met {thirdMostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
+                }
+
+                // Adjust prices for drinks ordered more than 5 times but not in the top 3
+                foreach (var drink in sortedDrinks.Skip(3))
+                {
+                    if (drink.Orders > 5)
+                    {
+                        double increase = GetRandomNumber(0, 0.7);  // Random increase between 0 and 0.7
+                        double oldPrice = drink.CurrentPrice.Value;
+                        drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + increase), drink.MaxPrice.Value);
+                        priceChangesMessage.AppendLine($"{drink.Name}: gestegen met {drink.CurrentPrice.Value - oldPrice:F2} EUR.");
+                    }
+                    else if (drink.Orders < 5)
+                    {
+                        double adjustment = GetRandomNumber(-0.5, 0.5);  // Random adjustment between -0.5 and +0.5
+                        double oldPrice = drink.CurrentPrice.Value;
+
+                        if (adjustment > 0)
+                        {
+                            drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + adjustment), drink.MaxPrice.Value);
+                            priceChangesMessage.AppendLine($"{drink.Name}: gestegen met {drink.CurrentPrice.Value - oldPrice:F2} EUR.");
+                        }
+                        else
+                        {
+                            drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value + adjustment), drink.MinPrice.Value);
+                            priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
+                        }
+                    }
+                }
             }
 
             // Handle drinks that have not been ordered at all
@@ -349,11 +406,6 @@ namespace Beurscafe
             // Refresh the UI
             PopulateOrderDrinksTab();
         }
-
-
-
-
-
 
         // Helper method to generate a random number between a specified range
         private double GetRandomNumber(double minValue, double maxValue)
