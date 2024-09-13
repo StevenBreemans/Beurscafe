@@ -69,6 +69,50 @@ namespace Beurscafe
             await docRef.DeleteAsync();
         }
 
+        public async Task<(int timeRemaining, DateTime resetTime)> GetTimerFromFirestore()
+        {
+            DocumentSnapshot snapshot = await _firestoreDb.Collection("Timers").Document("MainTimer").GetSnapshotAsync();
+
+            if (snapshot.Exists)
+            {
+                Dictionary<string, object> timerData = snapshot.ToDictionary();
+                int timeRemaining = Convert.ToInt32(timerData["timeRemaining"]);
+                Timestamp resetTime = (Timestamp)timerData["resetTime"];
+
+                return (timeRemaining, resetTime.ToDateTime());
+            }
+
+            return (0, DateTime.UtcNow);  // Return default values if the timer doesn't exist
+        }
+        public async Task UpdateTimerInFirestore(int timeRemaining)
+        {
+            var timerRef = _firestoreDb.Collection("Timers").Document("MainTimer");
+            Dictionary<string, object> timerData = new Dictionary<string, object>
+    {
+        { "timeRemaining", timeRemaining },
+        { "resetTime", Timestamp.FromDateTime(DateTime.UtcNow) }
+    };
+            await timerRef.SetAsync(timerData, SetOptions.MergeAll);
+        }
+
+        public void ListenToTimerChanges(Action<int, DateTime> onTimerUpdate)
+        {
+            var timerRef = _firestoreDb.Collection("Timers").Document("MainTimer");
+
+            timerRef.Listen(snapshot =>
+            {
+                if (snapshot.Exists)
+                {
+                    Dictionary<string, object> timerData = snapshot.ToDictionary();
+                    int timeRemaining = Convert.ToInt32(timerData["timeRemaining"]);
+                    Timestamp resetTime = (Timestamp)timerData["resetTime"];
+
+                    onTimerUpdate(timeRemaining, resetTime.ToDateTime());
+                }
+            });
+        }
+
+
 
     }
 }

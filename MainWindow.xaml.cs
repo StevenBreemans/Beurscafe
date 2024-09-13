@@ -30,27 +30,7 @@ namespace Beurscafe
         private List<OrderedDrink> orderedDrinks = new List<OrderedDrink>();
         private bool isTimerPopupOpen = false;
 
-/*
-        private Drinks beer;
-        private Drinks wine;
-        private Drinks beer1;
-        private Drinks wine1;
-        private Drinks beer2;
-        private Drinks wine2;
-        private Drinks beer3;
-        private Drinks wine3;
-        private Drinks beer4;
-        private Drinks wine4;
-        private Drinks beer5;
-        private Drinks wine5;
-        private Drinks beer6;
-        private Drinks wine6;
-        private Drinks beer7;
-        private Drinks wine7;
-        private Drinks beer8;
-        private Drinks wine8;
-        private Drinks beer9;
-        private Drinks wine9;*/
+
         private int lastSelectedIndex = 0;
         private TimeSpan defaultTimeRemaining = TimeSpan.FromMinutes(5);  // Default 5-minute timer
         private TimeSpan originalTimeRemaining;  // Store the original value to reset the timer
@@ -59,32 +39,15 @@ namespace Beurscafe
 
         private FirebaseManager firebaseManager = new FirebaseManager();  // Initialize FirebaseManager
 
+        // Add a new variable to throttle Firestore updates
+        private DateTime lastFirestoreUpdate = DateTime.MinValue;
+
+        // Throttle Firestore updates to every X seconds (5 seconds in this case)
+        private int firestoreUpdateInterval = 5;
+
         public MainWindow()
         {
             InitializeComponent();
-
-/*            // Initialize drinks
-            beer1 = new Drinks("Beer1", 1.5, 5.0, 2.0);
-            wine1 = new Drinks("Wine1", 2.0, 6.0, 3.0);
-            beer2 = new Drinks("Beer2", 1.5, 5.0, 2.0);
-            wine2 = new Drinks("Wine2", 2.0, 6.0, 3.0);
-            beer3 = new Drinks("Beer3", 1.5, 5.0, 2.0);
-            wine3 = new Drinks("Wine3", 2.0, 6.0, 3.0);
-            beer4 = new Drinks("Beer4", 1.5, 5.0, 2.0);
-            wine4 = new Drinks("Wine4", 2.0, 6.0, 3.0);
-
-
-            // Add drinks to the list
-            drinksList.Add(beer1);
-            drinksList.Add(beer2);
-            drinksList.Add(beer3);
-            drinksList.Add(beer4);
-
-            drinksList.Add(wine1);
-            drinksList.Add(wine2);
-            drinksList.Add(wine3);
-            drinksList.Add(wine4);*/
-
 
             // Set the timer to 5 minutes initially
             timeRemaining = defaultTimeRemaining;
@@ -95,6 +58,9 @@ namespace Beurscafe
 
             // Asynchronously fetch drinks from Firestore and update the UI
             LoadDrinksFromFirestore();
+
+            // Listen for Firestore updates
+            firebaseManager.ListenToTimerChanges(OnFirestoreTimerUpdate);
         }
 
         // Method to load drinks from Firestore and populate the UI
@@ -127,6 +93,29 @@ namespace Beurscafe
             }
         }
 
+        private async void LoadTimerFromFirestore()
+        {
+            var (firestoreTimeRemaining, firestoreResetTime) = await firebaseManager.GetTimerFromFirestore();
+
+            // Calculate the elapsed time since the reset
+            TimeSpan elapsedTime = DateTime.UtcNow - firestoreResetTime;
+            timeRemaining = TimeSpan.FromSeconds(Math.Max(firestoreTimeRemaining - elapsedTime.TotalSeconds, 0));
+
+            // Update the timer display
+            UpdateTimerDisplay();
+
+            // Start the timer
+            StartTimer();
+        }
+
+        // Update the timer when Firestore changes
+        private void OnFirestoreTimerUpdate(int newTimeRemaining, DateTime resetTime)
+        {
+            TimeSpan elapsedTime = DateTime.UtcNow - resetTime;
+            timeRemaining = TimeSpan.FromSeconds(Math.Max(newTimeRemaining - elapsedTime.TotalSeconds, 0));
+            UpdateTimerDisplay();
+        }
+
         private void StartTimer()
         {
             timer.Interval = TimeSpan.FromSeconds(1);
@@ -156,31 +145,34 @@ namespace Beurscafe
 
 
 
-        private void Timer_Tick(object? sender, EventArgs e)
+        private async void Timer_Tick(object? sender, EventArgs e)
         {
             if (timeRemaining > TimeSpan.Zero)
             {
-                // Update remaining time every second
+                // Decrease the time remaining by 1 second
                 timeRemaining = timeRemaining.Add(TimeSpan.FromSeconds(-1));
-                UpdateTimerDisplay();  // Update the TabItem header
+                UpdateTimerDisplay(); // Update UI
+
+                // Only update Firestore every 5 seconds to avoid excessive writes
+                if ((DateTime.UtcNow - lastFirestoreUpdate).TotalSeconds >= firestoreUpdateInterval)
+                {
+                    lastFirestoreUpdate = DateTime.UtcNow;
+                    await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
+                }
             }
             else
             {
-                // Play sound when the timer hits 0
-                PlaySound();
+                // When the timer hits zero, reset it and sync with Firestore
+                PlaySound(); // Play sound when timer reaches zero
+                AdjustPrices(); // Adjust drink prices
+                ResetOrders(); // Reset orders
 
-                // Adjust prices when the timer reaches zero
-                AdjustPrices();
-
-                // Reset the timer to either the custom or default value
+                // Reset the time to the default or custom time
                 timeRemaining = customTimerSet ? originalTimeRemaining : defaultTimeRemaining;
 
-                // Clear orders and update the right-side panel
-                ResetOrders();
-                UpdateOrderCountDisplay();
-
-                // Update the TimerTabItem header with reset time
-                UpdateTimerDisplay();
+                // Immediately update Firestore with the new timer value
+                await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
+                UpdateTimerDisplay(); // Update UI after reset
             }
         }
 
@@ -200,13 +192,27 @@ namespace Beurscafe
         // Method to update the TimerTabItem's header dynamically
         private void UpdateTimerDisplay()
         {
-            // Assuming the timer TabItem is the last item in the TabControl
-            TabItem timerTabItem = (TabItem)MainTabControl.Items[2]; // Adjust the index if necessary
-            timerTabItem.Header = $"Resterende tijd: {timeRemaining:mm\\:ss}";
+            // Check if the current thread is the UI thread
+            if (Dispatcher.CheckAccess())
+            {
+                // This is the UI thread, so update directly
+                TabItem timerTabItem = (TabItem)MainTabControl.Items[2]; // Adjust the index if necessary
+                timerTabItem.Header = $"Resterende tijd: {timeRemaining:mm\\:ss}";
+            }
+            else
+            {
+                // If this is not the UI thread, use the Dispatcher to update the UI safely
+                Dispatcher.Invoke(() =>
+                {
+                    TabItem timerTabItem = (TabItem)MainTabControl.Items[2]; // Adjust the index if necessary
+                    timerTabItem.Header = $"Resterende tijd: {timeRemaining:mm\\:ss}";
+                });
+            }
         }
 
+
         // Event handler for TabControl SelectionChanged
-        private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // If the selected tab is the TimerTabItem and the popup is not open
             if (MainTabControl.SelectedItem == TimerTabItem && !isTimerPopupOpen)
@@ -226,13 +232,16 @@ namespace Beurscafe
                     // Try parsing the input
                     if (int.TryParse(input, out int newMinutes))
                     {
-                        // Set the new remaining time based on user input
-                        timeRemaining = TimeSpan.FromSeconds(newMinutes);  // Use minutes here
+                        // Set the new remaining time based on user input (Use TimeSpan.FromMinutes instead of FromSeconds)
+                        timeRemaining = TimeSpan.FromSeconds(newMinutes);
                         UpdateTimerDisplay();  // Update the header with the new time
 
                         // Save the original custom time
                         originalTimeRemaining = timeRemaining;
                         customTimerSet = true;  // Mark that a custom timer is set
+
+                        // Update Firestore with the new timer value
+                        await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
                     }
                     else
                     {
@@ -271,6 +280,7 @@ namespace Beurscafe
                 PopulateEditDrinksTab();  // Refresh the Edit Drinks tab to remove the unsaved row
             }
         }
+
         private async void AdjustPrices()
         {
             StringBuilder priceChangesMessage = new StringBuilder();
