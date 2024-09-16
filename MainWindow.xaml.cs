@@ -288,186 +288,190 @@ namespace Beurscafe
         }
         private int roundsWithoutOrders = 0;  // Variable to track consecutive rounds without orders
 
-        private async void AdjustPrices()
+        private void HandleNoOrders(int roundsWithoutOrders, Random random, StringBuilder priceChangesMessage)
         {
-            // Create a single Random instance at the start of the method
-            Random random = new Random();
+            var notOrderedDrinks = drinksList.Where(d => d.Orders == 0).ToList();
 
-            StringBuilder priceChangesMessage = new StringBuilder();
-            priceChangesMessage.AppendLine("Prijswijzigingen:");
-
-            // Sort drinks by the number of orders in descending order
-            var sortedDrinks = drinksList.OrderByDescending(d => d.Orders).ToList();
-
-            // Check if no orders have been placed
-            bool noOrdersPlaced = sortedDrinks.All(d => d.Orders == 0);
-
-            // Update the count of rounds without orders
-            if (noOrdersPlaced)
+            if (roundsWithoutOrders < 3)
             {
-                roundsWithoutOrders++;
+                HandleFirstTwoRoundsWithoutOrders(random, priceChangesMessage, notOrderedDrinks);
+            }
+            else if (roundsWithoutOrders == 3)
+            {
+                HandleThirdRoundWithoutOrders(random, priceChangesMessage);
+            }
+            else if (roundsWithoutOrders >= 4)
+            {
+                HandleFourOrMoreRoundsWithoutOrders(random, priceChangesMessage);
+            }
+        }
+
+        private void HandleFirstTwoRoundsWithoutOrders(Random random, StringBuilder priceChangesMessage, List<Drinks> notOrderedDrinks)
+        {
+            var eligibleDrinksForMinPrice = notOrderedDrinks.Where(d => d.CurrentPrice <= d.MaxPrice - 1.0).ToList();
+            Drinks selectedDrink = null;
+
+            if (eligibleDrinksForMinPrice.Count > 0 && random.NextDouble() <= 0.35)
+            {
+                selectedDrink = eligibleDrinksForMinPrice[random.Next(eligibleDrinksForMinPrice.Count)];
+                priceChangesMessage.AppendLine($"{selectedDrink.Name}: heeft een kans van 35% en is verlaagd naar de minimumprijs.");
+                selectedDrink.CurrentPrice = selectedDrink.MinPrice;
+            }
+
+            foreach (var drink in notOrderedDrinks.Where(d => d != selectedDrink))
+            {
+                double decrease = GetRandomNumber(0.1, 1.2, random);
+                double oldPrice = drink.CurrentPrice.Value;
+                drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value - decrease), drink.MinPrice.Value);
+                priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
+            }
+        }
+
+        private void HandleThirdRoundWithoutOrders(Random random, StringBuilder priceChangesMessage)
+        {
+            priceChangesMessage.AppendLine("Er zijn 3 rondes geen bestellingen geplaatst. Eén willekeurig drankje wordt verlaagd naar de minimumprijs.");
+            var notOrderedDrinksForThreeRounds = drinksList.Where(d => d.Orders == 0 && d.CurrentPrice <= d.MaxPrice - 1.0).ToList();
+
+            if (notOrderedDrinksForThreeRounds.Count > 0)
+            {
+                var selectedDrink = notOrderedDrinksForThreeRounds[random.Next(notOrderedDrinksForThreeRounds.Count)];
+                selectedDrink.CurrentPrice = selectedDrink.MinPrice;
+                priceChangesMessage.AppendLine($"{selectedDrink.Name}: verlaagd naar de minimumprijs.");
             }
             else
             {
-                roundsWithoutOrders = 0;  // Reset if orders are placed
+                priceChangesMessage.AppendLine("Er zijn geen geschikte drankjes om naar de minimumprijs te verlagen.");
+            }
+        }
+
+        private void HandleFourOrMoreRoundsWithoutOrders(Random random, StringBuilder priceChangesMessage)
+        {
+            priceChangesMessage.AppendLine("Er zijn 4 of meer rondes geen bestellingen geplaatst. Enkele willekeurige drankjes worden ingesteld op hun gemiddelde prijs.");
+
+            var eligibleDrinks = drinksList.Where(d => d.Orders == 0 && d.CurrentPrice > d.MinPrice && d.CurrentPrice > (d.MinPrice + d.MaxPrice) / 2).ToList();
+
+            if (eligibleDrinks.Count > 0)
+            {
+                int numberOfDrinksToAdjust = random.Next(1, eligibleDrinks.Count + 1);
+
+                for (int i = 0; i < numberOfDrinksToAdjust; i++)
+                {
+                    var selectedDrink = eligibleDrinks[random.Next(eligibleDrinks.Count)];
+                    double averagePrice = (selectedDrink.MinPrice.Value + selectedDrink.MaxPrice.Value) / 2;
+                    selectedDrink.CurrentPrice = RoundUp(averagePrice);
+                    priceChangesMessage.AppendLine($"{selectedDrink.Name}: aangepast naar de gemiddelde prijs van {averagePrice:F2} EUR.");
+                }
+            }
+            else
+            {
+                priceChangesMessage.AppendLine("Er zijn geen geschikte drankjes om aan te passen.");
+            }
+        }
+
+        private void HandleOrderedDrinksPriceAdjustment(List<Drinks> sortedDrinks, StringBuilder priceChangesMessage, Random random)
+        {
+            if (sortedDrinks.Count > 0 && sortedDrinks[0].Orders >= 1)
+            {
+                AdjustPriceForMostOrderedDrink(sortedDrinks[0], priceChangesMessage, random);
             }
 
-            // Handle drinks that have not been ordered at all
-            var notOrderedDrinks = drinksList.Where(d => d.Orders == 0).ToList();
-            if (roundsWithoutOrders < 3)
+            if (sortedDrinks.Count > 1 && sortedDrinks[1].Orders >= 1)
             {
-                // Filter out drinks that are within 1.0 of their max price
-                var eligibleDrinksForMinPrice = notOrderedDrinks.Where(d => d.CurrentPrice <= d.MaxPrice - 1.0).ToList();
+                AdjustPriceForSecondMostOrderedDrink(sortedDrinks[1], priceChangesMessage, random);
+            }
 
-                // Declare selectedDrink outside the if block for scope purposes
-                Drinks selectedDrink = null;
+            if (sortedDrinks.Count > 2 && sortedDrinks[2].Orders >= 1)
+            {
+                AdjustPriceForThirdMostOrderedDrink(sortedDrinks[2], priceChangesMessage, random);
+            }
 
-                // Introduce a 35% chance for lowering one drink to the minimum price
-                if (eligibleDrinksForMinPrice.Count > 0 && random.NextDouble() <= 0.35)  // 35% chance
+            AdjustRemainingDrinks(sortedDrinks.Skip(3).ToList(), priceChangesMessage, random);
+        }
+
+
+        private void AdjustPriceForMostOrderedDrink(Drinks mostOrderedDrink, StringBuilder priceChangesMessage, Random random)
+        {
+            double increase = GetRandomNumber(0.8, mostOrderedDrink.MaxPrice.Value - mostOrderedDrink.CurrentPrice.Value, random);
+            double oldPrice = mostOrderedDrink.CurrentPrice.Value;
+            mostOrderedDrink.CurrentPrice = Math.Min(RoundUp(mostOrderedDrink.CurrentPrice.Value + increase), mostOrderedDrink.MaxPrice.Value);
+            priceChangesMessage.AppendLine($"{mostOrderedDrink.Name}: gestegen met {mostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
+        }
+
+        private void AdjustPriceForSecondMostOrderedDrink(Drinks secondMostOrderedDrink, StringBuilder priceChangesMessage, Random random)
+        {
+            double increase = GetRandomNumber(0.4, secondMostOrderedDrink.MaxPrice.Value - 0.5 - secondMostOrderedDrink.CurrentPrice.Value, random);
+            double oldPrice = secondMostOrderedDrink.CurrentPrice.Value;
+            secondMostOrderedDrink.CurrentPrice = Math.Min(RoundUp(secondMostOrderedDrink.CurrentPrice.Value + increase), secondMostOrderedDrink.MaxPrice.Value - 0.5);
+            priceChangesMessage.AppendLine($"{secondMostOrderedDrink.Name}: gestegen met {secondMostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
+        }
+        private void AdjustPriceForThirdMostOrderedDrink(Drinks thirdMostOrderedDrink, StringBuilder priceChangesMessage, Random random)
+        {
+            double increase = GetRandomNumber(0.1, 1.0, random);
+            double oldPrice = thirdMostOrderedDrink.CurrentPrice.Value;
+            thirdMostOrderedDrink.CurrentPrice = Math.Min(RoundUp(thirdMostOrderedDrink.CurrentPrice.Value + increase), thirdMostOrderedDrink.MaxPrice.Value);
+            priceChangesMessage.AppendLine($"{thirdMostOrderedDrink.Name}: gestegen met {thirdMostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
+        }
+
+
+        private void AdjustRemainingDrinks(List<Drinks> remainingDrinks, StringBuilder priceChangesMessage, Random random)
+        {
+            foreach (var drink in remainingDrinks.Where(d => d.Orders >= 1))
+            {
+                if (drink.Orders > 5)
                 {
-                    selectedDrink = eligibleDrinksForMinPrice[random.Next(eligibleDrinksForMinPrice.Count)];
-                    priceChangesMessage.AppendLine($"{selectedDrink.Name}: heeft een kans van 35% en is verlaagd naar de minimumprijs.");
-                    selectedDrink.CurrentPrice = selectedDrink.MinPrice;
-                }
-
-                // Decrease the price of the remaining unordered drinks by a random value between 0.2 and 1.5
-                foreach (var drink in notOrderedDrinks.Where(d => d != selectedDrink))
-                {
-                    double decrease = GetRandomNumber(0.2, 1.5, random);  // Pass the Random instance
+                    double increase = GetRandomNumber(0, 0.7, random);
                     double oldPrice = drink.CurrentPrice.Value;
-                    drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value - decrease), drink.MinPrice.Value);  // Ensure it doesn't go below min price
-                    priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
+                    drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + increase), drink.MaxPrice.Value);
+                    priceChangesMessage.AppendLine($"{drink.Name}: gestegen met {drink.CurrentPrice.Value - oldPrice:F2} EUR.");
                 }
-            }
-
-            // Handle the case where no orders have been placed for 3 rounds
-            if (roundsWithoutOrders == 3)
-            {
-                priceChangesMessage.AppendLine("Er zijn 3 rondes geen bestellingen geplaatst. Eén willekeurig drankje wordt verlaagd naar de minimumprijs.");
-
-                // Filter eligible drinks for the 3-round case
-                var notOrderedDrinksForThreeRounds = drinksList.Where(d => d.Orders == 0 && d.CurrentPrice <= d.MaxPrice - 1.0).ToList();
-
-                // Check if there are any eligible drinks
-                if (notOrderedDrinksForThreeRounds.Count > 0)
+                else if (drink.Orders < 5)
                 {
-                    var selectedDrink = notOrderedDrinksForThreeRounds[random.Next(notOrderedDrinksForThreeRounds.Count)];
-                    selectedDrink.CurrentPrice = selectedDrink.MinPrice;
-                    priceChangesMessage.AppendLine($"{selectedDrink.Name}: verlaagd naar de minimumprijs.");
-                }
-                else
-                {
-                    priceChangesMessage.AppendLine("Er zijn geen geschikte drankjes om naar de minimumprijs te verlagen.");
-                }
+                    double adjustment = GetRandomNumber(-0.5, 0.5, random);
+                    double oldPrice = drink.CurrentPrice.Value;
 
-                MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;  // Stop further price changes
-            }
-
-            // Handle the case where no orders have been placed for 4 or more rounds
-            if (roundsWithoutOrders >= 4)
-            {
-                priceChangesMessage.AppendLine("Er zijn 4 of meer rondes geen bestellingen geplaatst. Enkele willekeurige drankjes worden ingesteld op hun gemiddelde prijs tussen de minimum- en maximumprijs (exclusief drankjes die al op de minimumprijs staan of onder de gemiddelde prijs zitten).");
-
-                // Filter eligible drinks
-                var eligibleDrinks = drinksList.Where(d => d.Orders == 0 && d.CurrentPrice > d.MinPrice && d.CurrentPrice > (d.MinPrice + d.MaxPrice) / 2).ToList();
-
-                // Check if there are any eligible drinks
-                if (eligibleDrinks.Count > 0)
-                {
-                    int numberOfDrinksToAdjust = random.Next(1, eligibleDrinks.Count + 1);  // Ensure we pick at least one drink
-
-                    for (int i = 0; i < numberOfDrinksToAdjust; i++)
+                    if (adjustment > 0)
                     {
-                        var selectedDrink = eligibleDrinks[random.Next(eligibleDrinks.Count)];
-                        double averagePrice = (selectedDrink.MinPrice.Value + selectedDrink.MaxPrice.Value) / 2;
-                        selectedDrink.CurrentPrice = RoundUp(averagePrice);
-                        priceChangesMessage.AppendLine($"{selectedDrink.Name}: aangepast naar de gemiddelde prijs van {averagePrice:F2} EUR.");
-                    }
-                }
-                else
-                {
-                    priceChangesMessage.AppendLine("Er zijn geen geschikte drankjes om aan te passen.");
-                }
-
-                MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;  // Stop further price changes
-            }
-
-            // If orders were placed, proceed with normal price adjustments, but only for drinks that have been ordered
-            if (!noOrdersPlaced)
-            {
-                // Adjust the price for the drink with the most orders (only if it has at least 1 order)
-                if (sortedDrinks.Count > 0 && sortedDrinks[0].Orders >= 1)
-                {
-                    var mostOrderedDrink = sortedDrinks[0];
-                    double increase = GetRandomNumber(0.8, mostOrderedDrink.MaxPrice.Value - mostOrderedDrink.CurrentPrice.Value, random);  // Use Random instance
-                    double oldPrice = mostOrderedDrink.CurrentPrice.Value;
-                    mostOrderedDrink.CurrentPrice = Math.Min(RoundUp(mostOrderedDrink.CurrentPrice.Value + increase), mostOrderedDrink.MaxPrice.Value);
-                    priceChangesMessage.AppendLine($"{mostOrderedDrink.Name}: gestegen met {mostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
-                }
-
-                // Adjust the price for the second most ordered drink (only if it has at least 1 order)
-                if (sortedDrinks.Count > 1 && sortedDrinks[1].Orders >= 1)
-                {
-                    var secondMostOrderedDrink = sortedDrinks[1];
-                    double increase = GetRandomNumber(0.4, secondMostOrderedDrink.MaxPrice.Value - 0.5 - secondMostOrderedDrink.CurrentPrice.Value, random);  // Use Random instance
-                    double oldPrice = secondMostOrderedDrink.CurrentPrice.Value;
-                    secondMostOrderedDrink.CurrentPrice = Math.Min(RoundUp(secondMostOrderedDrink.CurrentPrice.Value + increase), secondMostOrderedDrink.MaxPrice.Value - 0.5);
-                    priceChangesMessage.AppendLine($"{secondMostOrderedDrink.Name}: gestegen met {secondMostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
-                }
-
-                // Adjust the price for the third most ordered drink if it has been ordered at least 1 time
-                if (sortedDrinks.Count > 2 && sortedDrinks[2].Orders >= 1)
-                {
-                    var thirdMostOrderedDrink = sortedDrinks[2];
-                    double increase = GetRandomNumber(0.1, 1.0, random);  // Use Random instance
-                    double oldPrice = thirdMostOrderedDrink.CurrentPrice.Value;
-                    thirdMostOrderedDrink.CurrentPrice = Math.Min(RoundUp(thirdMostOrderedDrink.CurrentPrice.Value + increase), thirdMostOrderedDrink.MaxPrice.Value);
-                    priceChangesMessage.AppendLine($"{thirdMostOrderedDrink.Name}: gestegen met {thirdMostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
-                }
-
-                // Adjust prices for drinks ordered more than 5 times but not in the top 3
-                foreach (var drink in sortedDrinks.Skip(3).Where(d => d.Orders >= 1))  // Add a condition to ensure only ordered drinks are adjusted
-                {
-                    if (drink.Orders > 5)
-                    {
-                        double increase = GetRandomNumber(0, 0.7, random);  // Use Random instance
-                        double oldPrice = drink.CurrentPrice.Value;
-                        drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + increase), drink.MaxPrice.Value);
+                        drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + adjustment), drink.MaxPrice.Value);
                         priceChangesMessage.AppendLine($"{drink.Name}: gestegen met {drink.CurrentPrice.Value - oldPrice:F2} EUR.");
                     }
-                    else if (drink.Orders < 5)
+                    else
                     {
-                        double adjustment = GetRandomNumber(-0.5, 0.5, random);  // Use Random instance
-                        double oldPrice = drink.CurrentPrice.Value;
-
-                        if (adjustment > 0)
-                        {
-                            drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + adjustment), drink.MaxPrice.Value);
-                            priceChangesMessage.AppendLine($"{drink.Name}: gestegen met {drink.CurrentPrice.Value - oldPrice:F2} EUR.");
-                        }
-                        else
-                        {
-                            drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value + adjustment), drink.MinPrice.Value);
-                            priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
-                        }
+                        drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value + adjustment), drink.MinPrice.Value);
+                        priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
                     }
                 }
             }
+        }
 
-            // Show the final message box with all price changes
-            MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
+        private async void AdjustPrices()
+        {
+            Random random = new Random();
+            StringBuilder priceChangesMessage = new StringBuilder();
+            priceChangesMessage.AppendLine("Prijswijzigingen:");
 
-            // Update the drinks in Firestore after adjusting prices
-            foreach (var drink in drinksList)
+            var sortedDrinks = drinksList.OrderByDescending(d => d.Orders).ToList();
+            bool noOrdersPlaced = sortedDrinks.All(d => d.Orders == 0);
+
+            if (noOrdersPlaced) roundsWithoutOrders++;
+            else roundsWithoutOrders = 0;
+
+            HandleNoOrders(roundsWithoutOrders, random, priceChangesMessage);
+
+            if (!noOrdersPlaced)
             {
-                await firebaseManager.AddDrinkToFirestore(drink);  // Update Firestore with the new price
+                HandleOrderedDrinksPriceAdjustment(sortedDrinks, priceChangesMessage, random);
             }
 
-            // Refresh the UI
+            MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            foreach (var drink in drinksList)
+            {
+                await firebaseManager.AddDrinkToFirestore(drink);
+            }
+
             PopulateOrderDrinksTab();
         }
+
 
         // Helper method to generate a random number between a specified range using a passed Random instance
         private double GetRandomNumber(double minValue, double maxValue, Random random)
