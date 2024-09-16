@@ -55,13 +55,18 @@ namespace Beurscafe
                 double minPrice = Convert.ToDouble(drinkData["MinPrice"]);
                 double maxPrice = Convert.ToDouble(drinkData["MaxPrice"]);
                 double currentPrice = Convert.ToDouble(drinkData["CurrentPrice"]);
+                int orders = Convert.ToInt32(drinkData["Orders"]);
 
-                Drinks drink = new Drinks(name, minPrice, maxPrice, currentPrice);
+                Drinks drink = new Drinks(name, minPrice, maxPrice, currentPrice)
+                {
+                    Orders = orders
+                };
                 drinksList.Add(drink);
             }
 
             return drinksList;
         }
+
 
         public async Task DeleteDrinkFromFirestore(string drinkName)
         {
@@ -110,6 +115,15 @@ namespace Beurscafe
                     onTimerUpdate(timeRemaining, resetTime.ToDateTime());
                 }
             });
+        }
+        public async Task UpdateDrinkOrdersInFirestore(string drinkName, int orders)
+        {
+            var docRef = _firestoreDb.Collection("Drinks").Document(drinkName);
+            Dictionary<string, object> updates = new Dictionary<string, object>
+    {
+        { "Orders", orders }
+    };
+            await docRef.UpdateAsync(updates);
         }
 
 
