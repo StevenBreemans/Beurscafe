@@ -322,11 +322,11 @@ namespace Beurscafe
                 // Declare selectedDrink outside the if block for scope purposes
                 Drinks selectedDrink = null;
 
-                // Introduce a 45% chance for lowering one drink to the minimum price
-                if (eligibleDrinksForMinPrice.Count > 0 && random.NextDouble() <= 0.45)  // 45% chance
+                // Introduce a 35% chance for lowering one drink to the minimum price
+                if (eligibleDrinksForMinPrice.Count > 0 && random.NextDouble() <= 0.35)  // 35% chance
                 {
                     selectedDrink = eligibleDrinksForMinPrice[random.Next(eligibleDrinksForMinPrice.Count)];
-                    priceChangesMessage.AppendLine($"{selectedDrink.Name}: heeft een kans van 45% en is verlaagd naar de minimumprijs.");
+                    priceChangesMessage.AppendLine($"{selectedDrink.Name}: heeft een kans van 35% en is verlaagd naar de minimumprijs.");
                     selectedDrink.CurrentPrice = selectedDrink.MinPrice;
                 }
 
@@ -825,7 +825,7 @@ namespace Beurscafe
                 FontSize = fontSize,
                 HorizontalContentAlignment = textAlignment,
                 VerticalAlignment = verticalAlignment,
-                Margin = priceMargin
+                Margin = rowTopMargin
             };
             Grid.SetRow(maxPriceTextBox, row);
             Grid.SetColumn(maxPriceTextBox, 2);
@@ -839,7 +839,7 @@ namespace Beurscafe
                 FontSize = fontSize,
                 HorizontalContentAlignment = textAlignment,
                 VerticalAlignment = verticalAlignment,
-                Margin = priceMargin
+                Margin = rowTopMargin
             };
             Grid.SetRow(currentPriceTextBox, row);
             Grid.SetColumn(currentPriceTextBox, 3);
@@ -852,7 +852,7 @@ namespace Beurscafe
                 Width = buttonWidth,
                 FontSize = fontSize,
                 VerticalAlignment = verticalAlignment,
-                Margin = new Thickness(10, 0, 0, 0)
+                Margin = rowTopMargin
             };
             Grid.SetRow(saveButton, row);
             Grid.SetColumn(saveButton, 4);
@@ -865,7 +865,7 @@ namespace Beurscafe
                 Width = buttonWidth,
                 FontSize = fontSize,
                 VerticalAlignment = verticalAlignment,
-                Margin = new Thickness(10, 0, 0, 0)
+                Margin = rowTopMargin
             };
             Grid.SetRow(deleteButton, row);
             Grid.SetColumn(deleteButton, 5);
