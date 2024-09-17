@@ -380,10 +380,10 @@ namespace Beurscafe
                     double averagePrice = (drink.MinPrice.Value + drink.MaxPrice.Value) / 2;
 
                     // Set the price to either the average or a random value between 0.5 below the average and the average
-                    double adjustment = GetRandomNumber(averagePrice - 0.5, averagePrice, random);
+                    double adjustment = GetRandomNumber(averagePrice - 0.7, averagePrice, random);
                     drink.CurrentPrice = RoundDown(adjustment); // Use rounding down logic
 
-                    priceChangesMessage.AppendLine($"{drink.Name}: aangepast naar {drink.CurrentPrice:F2} EUR (tussen 0,5 onder en de gemiddelde prijs).");
+                    priceChangesMessage.AppendLine($"{drink.Name}: aangepast naar {drink.CurrentPrice:F2} EUR (tussen 0,7 onder en de gemiddelde prijs).");
                 }
             }
             else

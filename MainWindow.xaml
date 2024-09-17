@@ -15,11 +15,11 @@
                 <Grid>
                     <!-- Create a grid with two columns -->
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.5*" />
+                        <ColumnDefinition Width="2.4*" />
                         <!-- Half for buttons -->
                         <ColumnDefinition Width="10" />
                         <!-- Add the vertical line here -->
-                        <ColumnDefinition Width="1.5*" />
+                        <ColumnDefinition Width="1.6*" />
                         <!-- Half for order count -->
                     </Grid.ColumnDefinitions>
 
