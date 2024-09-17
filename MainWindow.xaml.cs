@@ -903,7 +903,7 @@ namespace Beurscafe
                 // Regex for validating that the name contains only letters
                 if (string.IsNullOrWhiteSpace(newName) || !Regex.IsMatch(newName, @"^[a-zA-Z]+$"))
                 {
-                    messageLabel.Content = "Drink name must contain only letters.";
+                    messageLabel.Content = "Drink name must contain only letters and cannot be empty.";
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
                     messageRow.Height = GridLength.Auto;  // Show the message row
@@ -950,6 +950,7 @@ namespace Beurscafe
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
                     messageRow.Height = GridLength.Auto;  // Show the message row
+                    return;  // Stop execution if min price is greater or equal to max price
                 }
                 else if (newCurrentPrice < newMinPrice || newCurrentPrice > newMaxPrice)
                 {
@@ -957,44 +958,47 @@ namespace Beurscafe
                     messageLabel.Foreground = Brushes.Red;
                     messageLabel.Visibility = Visibility.Visible;
                     messageRow.Height = GridLength.Auto;  // Show the message row
+                    return;  // Stop execution if current price is outside the valid range
                 }
-                else
+
+                // Only delete the old document if it's an update and the name has changed
+                if (!isNew && originalName != newName)
                 {
-                    // If the name has changed, update the Firestore document and modify the drink in place
-                    if (originalName != newName)
-                    {
-                        // Delete the old document from Firestore
-                        await firebaseManager.DeleteDrinkFromFirestore(originalName);
+                    await firebaseManager.DeleteDrinkFromFirestore(originalName);  // Delete the old drink by original name
+                }
 
-                        // Update the drink in the list (do not remove it, just change its properties)
-                        drink.Name = newName;
-                        drink.MinPrice = newMinPrice;
-                        drink.MaxPrice = newMaxPrice;
-                        drink.CurrentPrice = newCurrentPrice;
+                // Update the drink properties
+                drink.Name = newName;
+                drink.MinPrice = newMinPrice;
+                drink.MaxPrice = newMaxPrice;
+                drink.CurrentPrice = newCurrentPrice;
 
-                        // Add the updated drink with the new name to Firestore
-                        await firebaseManager.AddDrinkToFirestore(drink);
-                    }
-                    else
-                    {
-                        // If the name hasn't changed, just update the other fields
-                        drink.MinPrice = newMinPrice;
-                        drink.MaxPrice = newMaxPrice;
-                        drink.CurrentPrice = newCurrentPrice;
+                // Save the updated or new drink to Firestore
+                await firebaseManager.AddDrinkToFirestore(drink);  // Save or update the drink
 
-                        // Save the updated drink back to Firestore
-                        await firebaseManager.AddDrinkToFirestore(drink);  // Update Firestore
-                    }
+                // If the drink is new, add it to the local list to ensure it shows in the UI
+                if (isNew)
+                {
+                    drinksList.Add(drink);
+                }
 
-                    // Clear the error message and hide it
-                    messageLabel.Content = "";
-                    messageLabel.Visibility = Visibility.Hidden;
-                    messageRow.Height = new GridLength(10);  // Hide the message row if no error
+                // Clear the error message and hide it
+                messageLabel.Content = "";
+                messageLabel.Visibility = Visibility.Hidden;
+                messageRow.Height = new GridLength(10);  // Hide the message row if no error
 
-                    // Refresh the Edit Drinks Tab to show the updated drink
-                    PopulateEditDrinksTab();
+                // Refresh the Edit Drinks Tab and Order Drinks Tab to show the updated drink
+                PopulateEditDrinksTab();
+                PopulateOrderDrinksTab();  // Update the Order Drinks tab as well
+
+                // If the drink is new, clear the temporary new drink variable after saving
+                if (isNew)
+                {
+                    tempNewDrink = null;
                 }
             };
+
+
 
             // Delete button click event
             deleteButton.Click += async (s, args) =>
