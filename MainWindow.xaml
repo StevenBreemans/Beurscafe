@@ -27,6 +27,59 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Minus Button Style (Red) -->
+        <Style x:Key="MinusButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Red"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                            CornerRadius="10"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FF6666"/>
+                    <!-- Lighter Red on Hover -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Plus Button Style (Green) -->
+        <Style x:Key="PlusButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Green"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                            CornerRadius="10"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#66FF66"/>
+                    <!-- Lighter Green on Hover -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
 
@@ -52,10 +105,10 @@
                             <!-- Add the background logo here -->
                             <Grid.Background>
                                 <ImageBrush ImageSource="pack://application:,,,/Resources/LogoZool.png"
-            Opacity="0.6"
-            Stretch="UniformToFill"
-            AlignmentX="Center"
-            AlignmentY="Center"/>
+                                            Opacity="0.6"
+                                            Stretch="UniformToFill"
+                                            AlignmentX="Center"
+                                            AlignmentY="Center"/>
 
                             </Grid.Background>
 
@@ -70,8 +123,8 @@
                     <Border Grid.Column="1" Background="Black" Width="10" VerticalAlignment="Stretch" Margin="0" />
 
                     <!-- Right side: Scrollable Grid for ordered drinks and total sum -->
-                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-                        <Grid Margin="20">
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Background="LightGray">
+                        <Grid Margin="20" >
 
                             <Grid.RowDefinitions>
                                 <!-- 90% for ordered drinks -->

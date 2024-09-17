@@ -589,7 +589,7 @@ namespace Beurscafe
 
             // Adjust size for the plus and minus buttons dynamically
             double buttonSize = screenHeight * 0.05;  // 5% of the screen height
-            double fontSize = screenHeight * 0.02;    // Adjust font size 
+            double fontSize = screenHeight * 0.03;    // Adjust font size 
             double dynamicTextBlockWidth = screenWidth * 0.02;  // 5% of the screen width
 
             foreach (var orderedDrink in orderedDrinks)
@@ -602,7 +602,7 @@ namespace Beurscafe
                     // Create a Grid to structure the layout
                     Grid drinkGrid = new Grid
                     {
-                        Margin = new Thickness(0, 15, 0, 0),  // Add space between rows
+                        Margin = new Thickness(0, 15, 0, 20),  // Add space between rows
                         HorizontalAlignment = HorizontalAlignment.Stretch // Ensure full-width usage
                     };
 
@@ -639,8 +639,7 @@ namespace Beurscafe
                         FontSize = fontSize,
                         Margin = new Thickness(5),
                         Tag = orderedDrink,  // Store the orderedDrink object in the Tag
-                        HorizontalContentAlignment = HorizontalAlignment.Center,
-                        VerticalContentAlignment = VerticalAlignment.Center
+                        Style = (Style)FindResource("MinusButtonStyle") // Apply the MinusButtonStyle
                     };
 
                     minusButton.Click += MinusButton_Click;
@@ -667,12 +666,12 @@ namespace Beurscafe
                         FontSize = fontSize,
                         Margin = new Thickness(5),
                         Tag = orderedDrink,  // Store the orderedDrink object in the Tag
-                        HorizontalContentAlignment = HorizontalAlignment.Center,
-                        VerticalContentAlignment = VerticalAlignment.Center
+                        Style = (Style)FindResource("PlusButtonStyle")  // Apply the PlusButtonStyle
                     };
 
                     plusButton.Click += PlusButton_Click;
                     buttonStack.Children.Add(plusButton);
+
 
                     Grid.SetColumn(buttonStack, 1); // Second column
                     drinkGrid.Children.Add(buttonStack);
