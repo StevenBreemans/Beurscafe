@@ -577,14 +577,20 @@ namespace Beurscafe
             }
         }
 
-
-
-
         private void UpdateOrderCountDisplay()
         {
             // Clear the previous order count display
             OrderCountPanel.Children.Clear();
             double totalSum = 0;
+
+            // Get screen size or window size
+            double screenHeight = SystemParameters.PrimaryScreenHeight;
+            double screenWidth = SystemParameters.PrimaryScreenWidth;
+
+            // Adjust size for the plus and minus buttons dynamically
+            double buttonSize = screenHeight * 0.05;  // 5% of the screen height
+            double fontSize = screenHeight * 0.02;    // Adjust font size 
+            double dynamicTextBlockWidth = screenWidth * 0.02;  // 5% of the screen width
 
             foreach (var orderedDrink in orderedDrinks)
             {
@@ -593,7 +599,7 @@ namespace Beurscafe
                     double drinkPrice = orderedDrink.Drink.CurrentPrice ?? 0; // Default to 0 if null
                     double drinkTotal = orderedDrink.Orders * drinkPrice;
 
-                    // Create a Grid to structure the layout (similar to your existing code)
+                    // Create a Grid to structure the layout
                     Grid drinkGrid = new Grid
                     {
                         Margin = new Thickness(0, 15, 0, 0),  // Add space between rows
@@ -609,7 +615,7 @@ namespace Beurscafe
                     TextBlock drinkTextBlock = new TextBlock
                     {
                         Text = $"{orderedDrink.Drink.Name}:",
-                        FontSize = 40,
+                        FontSize = fontSize,
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(20, 0, 10, 0)
@@ -628,11 +634,15 @@ namespace Beurscafe
                     Button minusButton = new Button
                     {
                         Content = "-",
-                        Width = 30,
-                        Height = 30,
+                        Width = buttonSize,
+                        Height = buttonSize,
+                        FontSize = fontSize,
                         Margin = new Thickness(5),
-                        Tag = orderedDrink // Store the orderedDrink object in the Tag
+                        Tag = orderedDrink,  // Store the orderedDrink object in the Tag
+                        HorizontalContentAlignment = HorizontalAlignment.Center,
+                        VerticalContentAlignment = VerticalAlignment.Center
                     };
+
                     minusButton.Click += MinusButton_Click;
                     buttonStack.Children.Add(minusButton);
 
@@ -640,8 +650,10 @@ namespace Beurscafe
                     TextBlock ordersTextBlock = new TextBlock
                     {
                         Text = $"{orderedDrink.Orders}",
-                        FontSize = 40,
+                        FontSize = fontSize,
                         VerticalAlignment = VerticalAlignment.Center,
+                        Width = dynamicTextBlockWidth,  // Set dynamic width based on screen width
+                        TextAlignment = TextAlignment.Center,
                         Margin = new Thickness(10, 0, 10, 0)
                     };
                     buttonStack.Children.Add(ordersTextBlock);
@@ -650,11 +662,15 @@ namespace Beurscafe
                     Button plusButton = new Button
                     {
                         Content = "+",
-                        Width = 30,
-                        Height = 30,
+                        Width = buttonSize,
+                        Height = buttonSize,
+                        FontSize = fontSize,
                         Margin = new Thickness(5),
-                        Tag = orderedDrink // Store the orderedDrink object in the Tag
+                        Tag = orderedDrink,  // Store the orderedDrink object in the Tag
+                        HorizontalContentAlignment = HorizontalAlignment.Center,
+                        VerticalContentAlignment = VerticalAlignment.Center
                     };
+
                     plusButton.Click += PlusButton_Click;
                     buttonStack.Children.Add(plusButton);
 
@@ -665,7 +681,7 @@ namespace Beurscafe
                     TextBlock drinkTotalTextBlock = new TextBlock
                     {
                         Text = $"= {drinkTotal:F2} EUR",
-                        FontSize = 40,
+                        FontSize = fontSize,
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(10, 0, 20, 0)
@@ -681,9 +697,11 @@ namespace Beurscafe
                 }
             }
 
-            // Update the total sum TextBlock (this one is already defined in XAML)
+            // Update the total sum TextBlock
             TotalSumTextBlock.Text = $"Total: {totalSum:F2} EUR";
         }
+
+
 
         // Increment the order count
         private async void PlusButton_Click(object sender, RoutedEventArgs e)
