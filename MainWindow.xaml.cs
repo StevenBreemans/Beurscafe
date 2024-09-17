@@ -1103,17 +1103,39 @@ namespace Beurscafe
             // Clear the existing content in the order drinks panel
             DrinksPanel.Children.Clear();
 
+            // Get screen size or window size
+            double screenWidth = SystemParameters.PrimaryScreenWidth;
+            double screenHeight = SystemParameters.PrimaryScreenHeight;
+
+            // Calculate dynamic button size based on screen size (adjust scaling factors as needed)
+            double buttonWidth = screenWidth * 0.12;  // 15% of screen width
+            double buttonHeight = screenHeight * 0.075;  // 10% of screen height
+            double fontSize = screenHeight * 0.02;    // 3% of screen height for font size
+            double marginSize = screenHeight * 0.05;  // 2% of screen height for margin
+
             // Add a button for each drink in the list
             foreach (var drink in drinksList)
             {
                 Button drinkButton = new Button
                 {
                     Content = $"{drink.Name} - {drink.CurrentPrice:F2} EUR",
-                    Width = 150,
-                    Height = 50,
-                    Margin = new Thickness(0, 10, 0, 0),
-                    Tag = drink.Name  // Use Tag to identify the drink by name
+                    Width = buttonWidth,    // Dynamic width based on screen size
+                    Height = buttonHeight,  // Dynamic height based on screen size
+                    FontSize = fontSize,    // Dynamic font size based on screen size
+                    Margin = new Thickness(marginSize, marginSize, marginSize, marginSize),  // Dynamic margin
+                    Tag = drink.Name        // Use Tag to identify the drink by name
                 };
+
+                // Apply the style for rounded corners (if defined in resources)
+                drinkButton.Style = (Style)FindResource("RoundedButtonStyle");
+
+                // Set the background color using the PriceToColorConverter
+                Binding colorBinding = new Binding
+                {
+                    Source = drink,
+                    Converter = (IValueConverter)FindResource("PriceToColorConverter") // Use the converter
+                };
+                drinkButton.SetBinding(Button.BackgroundProperty, colorBinding);
 
                 // Attach the universal event handler for ordering drinks
                 drinkButton.Click += OrderDrink_Click;

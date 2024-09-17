@@ -5,7 +5,31 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Beurscafe"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Beurscafe" Height="450" Width="800">
+
+    <Window.Resources>
+        <!-- Register the converter -->
+        <local:PriceToColorConverter x:Key="PriceToColorConverter" />
+
+        <!-- Style for rounded corner buttons -->
+        <Style x:Key="RoundedButtonStyle" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="20"  
+                            Padding="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+
     <Grid>
         <!-- TabControl for switching between Order Drinks and View/Edit Drinks -->
         <TabControl x:Name="MainTabControl" Margin="0,0,0,0" SelectionChanged="MainTabControl_SelectionChanged">
@@ -13,6 +37,7 @@
             <!-- Tab for ordering drinks -->
             <TabItem Header="Order Drinks">
                 <Grid>
+      
                     <!-- Create a grid with two columns -->
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2.4*" />
@@ -22,14 +47,23 @@
                         <ColumnDefinition Width="1.6*" />
                         <!-- Half for order count -->
                     </Grid.ColumnDefinitions>
-
-                    <!-- Left side: Scrollable WrapPanel for drinks -->
                     <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                        <WrapPanel x:Name="DrinksPanel" Orientation="Horizontal" Margin="20" ItemWidth="250" ItemHeight="100">
-                            <!-- Buttons for existing drinks (beer, wine, etc.) -->
-                            <Button x:Name="ButtonBeer" Content="Bier - 2.0 EUR" Width="150" Height="50" Margin="10" Tag="Beer" Click="OrderDrink_Click"/>
-                            <Button x:Name="ButtonWine" Content="Wijn - 3.0 EUR" Width="150" Height="50" Margin="10" Tag="Wine" Click="OrderDrink_Click"/>
-                        </WrapPanel>
+                        <Grid>
+                            <!-- Add the background logo here -->
+                            <Grid.Background>
+                                <ImageBrush ImageSource="pack://application:,,,/Resources/LogoZool.png"
+            Opacity="0.6"
+            Stretch="UniformToFill"
+            AlignmentX="Center"
+            AlignmentY="Center"/>
+
+                            </Grid.Background>
+
+                            <WrapPanel x:Name="DrinksPanel" Orientation="Horizontal" Margin="20">
+                                <!-- Buttons for existing drinks will be added dynamically here -->
+                            </WrapPanel>
+
+                        </Grid>
                     </ScrollViewer>
 
                     <!-- Vertical Border between the columns -->
@@ -38,6 +72,7 @@
                     <!-- Right side: Scrollable Grid for ordered drinks and total sum -->
                     <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
                         <Grid Margin="20">
+
                             <Grid.RowDefinitions>
                                 <!-- 90% for ordered drinks -->
                                 <RowDefinition Height="9*" />

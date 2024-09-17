@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\LogoZool.png" />
     <None Remove="Resources\WallStreetOpeningBell.wav" />
   </ItemGroup>
 
@@ -20,6 +21,12 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Cloud.Firestore" Version="3.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\LogoZool.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>
