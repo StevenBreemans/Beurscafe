@@ -177,6 +177,8 @@ namespace Beurscafe
                 ResetOrders();
                 timeRemaining = customTimerSet ? originalTimeRemaining : defaultTimeRemaining;
 
+                PopulateEditDrinksTab(); // Refresh the Edit Drinks tab to reflect price changes
+
                 // Sync the reset timer with Firestore
                 await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
                 UpdateTimerDisplay();
@@ -185,15 +187,22 @@ namespace Beurscafe
 
 
         // Reset orders for all drinks in the orderedDrinks list
-        private void ResetOrders()
+        private async void ResetOrders()
         {
             orderedDrinks.Clear();  // Clear the ordered drinks list
+
             foreach (var drink in drinksList)
             {
                 drink.Orders = 0;  // Reset the order count for each drink in the drinks list
+
+                // Update Firestore to reset the orders for each drink
+                await firebaseManager.UpdateDrinkOrdersInFirestore(drink.Name, drink.Orders);
             }
+
             UpdateOrderCountDisplay();  // Update the right-side display after resetting
         }
+
+
 
 
         // Method to update the TimerTabItem's header dynamically (UI thread-safe)
@@ -491,12 +500,8 @@ namespace Beurscafe
             return Math.Floor(value * 10) / 10;
         }
 
-
-
-
         // Universal event handler for ordering drinks
-        // Universal event handler for ordering drinks
-        private void OrderDrink_Click(object sender, RoutedEventArgs e)
+        private async void OrderDrink_Click(object sender, RoutedEventArgs e)
         {
             Button clickedButton = sender as Button;
 
@@ -524,6 +529,10 @@ namespace Beurscafe
 
                     // Update the total orders count for the drink in the Drinks class
                     clickedDrink.Orders++;
+
+                    // Update Firestore with the new total orders for the drink
+                    await firebaseManager.UpdateDrinkOrdersInFirestore(clickedDrink.Name, clickedDrink.Orders);
+
 
                     // Update the display with the new order counts
                     UpdateOrderCountDisplay();
@@ -639,36 +648,52 @@ namespace Beurscafe
             TotalSumTextBlock.Text = $"Total: {totalSum:F2} EUR";
         }
 
-
-
-
-
-
         // Increment the order count
-        private void PlusButton_Click(object sender, RoutedEventArgs e)
+        private async void PlusButton_Click(object sender, RoutedEventArgs e)
         {
             Button plusButton = sender as Button;
-            Drinks drink = plusButton.Tag as Drinks;
-
-            if (drink != null)
+            if (plusButton != null && plusButton.Tag is OrderedDrink orderedDrink)
             {
-                drink.Orders++;  // Increment order count
-                UpdateOrderCountDisplay();  // Refresh the display
+                // Increment the order count for the clicked drink
+                orderedDrink.Orders++;
+                orderedDrink.Drink.Orders++;  // Also update the total orders count in the Drinks object
+
+                // Update the orders in Firestore
+                await firebaseManager.UpdateDrinkOrdersInFirestore(orderedDrink.Drink.Name, orderedDrink.Drink.Orders);
+
+                // Refresh the display to reflect the updated order count
+                UpdateOrderCountDisplay();
             }
         }
 
         // Decrement the order count
-        private void MinusButton_Click(object sender, RoutedEventArgs e)
+        private async void MinusButton_Click(object sender, RoutedEventArgs e)
         {
             Button minusButton = sender as Button;
-            Drinks drink = minusButton.Tag as Drinks;
-
-            if (drink != null && drink.Orders > 0)
+            if (minusButton != null && minusButton.Tag is OrderedDrink orderedDrink)
             {
-                drink.Orders--;  // Decrement order count
-                UpdateOrderCountDisplay();  // Refresh the display
+                // Decrement the order count if it's greater than 0
+                if (orderedDrink.Orders > 0)
+                {
+                    orderedDrink.Orders--;
+                    orderedDrink.Drink.Orders--;  // Also update the total orders count in the Drinks object
+
+                    // Update the orders in Firestore
+                    await firebaseManager.UpdateDrinkOrdersInFirestore(orderedDrink.Drink.Name, orderedDrink.Drink.Orders);
+                }
+
+                // If no orders left, remove the drink from the orderedDrinks list
+                if (orderedDrink.Orders == 0)
+                {
+                    orderedDrinks.Remove(orderedDrink);
+                }
+
+                // Refresh the display to reflect the updated order count
+                UpdateOrderCountDisplay();
             }
         }
+
+
         private void AddNewDrinkButton_Click(object sender, RoutedEventArgs e)
         {
             // Check if there's already an unsaved new drink, if so, skip adding another
@@ -900,65 +925,27 @@ namespace Beurscafe
                 string newName = nameTextBox.Text;
                 string originalName = drink.Name; // Store the original name for reference
 
-                // Regex for validating that the name contains only letters
-                if (string.IsNullOrWhiteSpace(newName) || !Regex.IsMatch(newName, @"^[a-zA-Z]+$"))
-                {
-                    messageLabel.Content = "Drink name must contain only letters and cannot be empty.";
-                    messageLabel.Foreground = Brushes.Red;
-                    messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;  // Show the message row
-                    return;  // Stop execution if the name is invalid
-                }
+                // Validate the drink name
+                if (!ValidateDrinkName(newName, messageLabel, messageRow)) return;
 
                 // Replace ',' with '.' to ensure parsing works for both decimal formats
                 string minPriceText = minPriceTextBox.Text.Replace(',', '.');
                 string maxPriceText = maxPriceTextBox.Text.Replace(',', '.');
                 string currentPriceText = currentPriceTextBox.Text.Replace(',', '.');
 
-                // Check if the prices are valid numbers
-                if (!double.TryParse(minPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double newMinPrice))
-                {
-                    messageLabel.Content = "Min price must be a valid number.";
-                    messageLabel.Foreground = Brushes.Red;
-                    messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;  // Show the message row
-                    return;  // Stop execution if min price is invalid
-                }
-
-                if (!double.TryParse(maxPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double newMaxPrice))
-                {
-                    messageLabel.Content = "Max price must be a valid number.";
-                    messageLabel.Foreground = Brushes.Red;
-                    messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;  // Show the message row
-                    return;  // Stop execution if max price is invalid
-                }
-
-                if (!double.TryParse(currentPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double newCurrentPrice))
-                {
-                    messageLabel.Content = "Current price must be a valid number.";
-                    messageLabel.Foreground = Brushes.Red;
-                    messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;  // Show the message row
-                    return;  // Stop execution if current price is invalid
-                }
+                // Validate the prices
+                if (!ValidatePrices(minPriceText, maxPriceText, currentPriceText, out double newMinPrice, out double newMaxPrice, out double newCurrentPrice, messageLabel, messageRow)) return;
 
                 // Further validation for price values
                 if (newMinPrice >= newMaxPrice)
                 {
-                    messageLabel.Content = "Min price must be less than max price.";
-                    messageLabel.Foreground = Brushes.Red;
-                    messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;  // Show the message row
-                    return;  // Stop execution if min price is greater or equal to max price
+                    DisplayError("Min price must be less than max price.", messageLabel, messageRow);
+                    return;
                 }
                 else if (newCurrentPrice < newMinPrice || newCurrentPrice > newMaxPrice)
                 {
-                    messageLabel.Content = $"Current price must be between {newMinPrice:F2} and {newMaxPrice:F2}.";
-                    messageLabel.Foreground = Brushes.Red;
-                    messageLabel.Visibility = Visibility.Visible;
-                    messageRow.Height = GridLength.Auto;  // Show the message row
-                    return;  // Stop execution if current price is outside the valid range
+                    DisplayError($"Current price must be between {newMinPrice:F2} and {newMaxPrice:F2}.", messageLabel, messageRow);
+                    return;
                 }
 
                 // Only delete the old document if it's an update and the name has changed
@@ -1019,6 +1006,59 @@ namespace Beurscafe
 
 
             row += 2;  // Move to the next row (2 rows for each drink: one for inputs, one for message)
+        }
+
+        private bool ValidateDrinkName(string name, Label messageLabel, RowDefinition messageRow)
+        {
+            if (string.IsNullOrWhiteSpace(name) || !Regex.IsMatch(name, @"^[a-zA-Z]+$"))
+            {
+                DisplayError("Drink name must contain only letters and cannot be empty.", messageLabel, messageRow);
+                return false;
+            }
+            return true;
+        }
+        private bool ValidatePrices(string minPriceText, string maxPriceText, string currentPriceText, out double newMinPrice, out double newMaxPrice, out double newCurrentPrice, Label messageLabel, RowDefinition messageRow)
+        {
+            newMinPrice = newMaxPrice = newCurrentPrice = 0;
+
+            if (!double.TryParse(minPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out newMinPrice))
+            {
+                DisplayError("Min price must be a valid number.", messageLabel, messageRow);
+                return false;
+            }
+
+            if (!double.TryParse(maxPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out newMaxPrice))
+            {
+                DisplayError("Max price must be a valid number.", messageLabel, messageRow);
+                return false;
+            }
+
+            if (!double.TryParse(currentPriceText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out newCurrentPrice))
+            {
+                DisplayError("Current price must be a valid number.", messageLabel, messageRow);
+                return false;
+            }
+
+            return true;
+        }
+        private void DisplayError(string errorMessage, Label messageLabel, RowDefinition messageRow)
+        {
+            messageLabel.Content = errorMessage;
+            messageLabel.Foreground = Brushes.Red;
+            messageLabel.Visibility = Visibility.Visible;
+            messageRow.Height = GridLength.Auto;  // Show the message row
+        }
+
+        private UIElement GetGridElement(int row, int column)
+        {
+            foreach (UIElement element in DrinksEditPanel.Children)
+            {
+                if (Grid.GetRow(element) == row && Grid.GetColumn(element) == column)
+                {
+                    return element;
+                }
+            }
+            return null;
         }
 
         private void PopulateOrderDrinksTab()
