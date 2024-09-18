@@ -6,14 +6,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Resources\beericon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\beericon.ico" />
     <None Remove="Resources\LogoZool.png" />
     <None Remove="Resources\WallStreetOpeningBell.wav" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Resources\beericon.ico" />
     <Content Include="Resources\WallStreetOpeningBell.wav">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -24,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\beericon.ico" />
     <Resource Include="Resources\LogoZool.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>

@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Beurscafe"
         mc:Ignorable="d"
-        Title="Beurscafe" Height="450" Width="800">
+        Title="Beurscafe" Height="450" Width="800"
+        Icon="pack://application:,,,/Resources/beericon.ico">
 
     <Window.Resources>
         <!-- Register the converter -->
@@ -208,7 +209,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
     </Window.Resources>
 
 
@@ -254,12 +254,11 @@
                     <!-- Right side: Scrollable Grid for ordered drinks and total sum -->
                     <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
                         <ScrollViewer.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#B0C4DE" Offset="0.0"/>
-                                <!-- Lighter -->
-                                <GradientStop Color="#778899" Offset="1.0"/>
-                                <!-- Darker -->
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.4">
+                                <GradientStop Color="#243464" Offset="0.0"/>
+                                <GradientStop Color="#1e2e52" Offset="1.0"/>
                             </LinearGradientBrush>
+
                         </ScrollViewer.Background>
                         <Grid Margin="20" >
 
