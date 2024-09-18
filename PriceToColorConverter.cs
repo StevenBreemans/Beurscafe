@@ -23,22 +23,28 @@ namespace Beurscafe
                 double lowerThreshold = minPrice + 0.25 * (maxPrice - minPrice);
                 double upperThreshold = minPrice + 0.75 * (maxPrice - minPrice);
 
+                // Colors from a unified, softer color palette
+                Brush softGreen = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#81C784")); // Softer Green
+                Brush softOrange = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFB74D")); // Softer Orange
+                Brush softRed = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC143C"));   // Softer Red
+                Brush defaultGray = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B0BEC5")); // Soft Gray as fallback
+
                 if (currentPrice <= lowerThreshold)
                 {
-                    return Brushes.Green;  // Below 25% -> Green
+                    return softGreen;  // Below 25% -> Softer Green
                 }
                 else if (currentPrice > lowerThreshold && currentPrice < upperThreshold)
                 {
-                    return Brushes.Orange;  // Between 25% and 75% -> Orange
+                    return softOrange;  // Between 25% and 75% -> Softer Orange
                 }
                 else
                 {
-                    return Brushes.Red;  // Above 75% -> Red
+                    return softRed;  // Above 75% -> Softer Red
                 }
             }
 
             // Default color (if something goes wrong)
-            return Brushes.Gray;
+            return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B0BEC5"));  // Light Gray
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

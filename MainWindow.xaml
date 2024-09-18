@@ -22,14 +22,18 @@
                                 CornerRadius="20"  
                             Padding="5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="5" BlurRadius="10" Opacity="0.4" />
+                            </Border.Effect>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Minus Button Style (Red) -->
+        <!-- Minus Button Style (Crimson Red) -->
         <Style x:Key="MinusButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Red"/>
+            <Setter Property="Background" Value="#DC143C"/>
+            <!-- Crimson Red -->
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -38,10 +42,13 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                            CornerRadius="10"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="1">
+                    CornerRadius="10"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="3" BlurRadius="6" Opacity="0.4" />
+                            </Border.Effect>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -49,14 +56,15 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#FF6666"/>
-                    <!-- Lighter Red on Hover -->
+                    <!-- Lighter Crimson on Hover -->
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- Plus Button Style (Green) -->
+        <!-- Plus Button Style (Softer Green) -->
         <Style x:Key="PlusButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Green"/>
+            <Setter Property="Background" Value="#4CAF50"/>
+            <!-- Softer Green -->
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -65,21 +73,25 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                            CornerRadius="10"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="1">
+                    CornerRadius="10"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="3" BlurRadius="6" Opacity="0.4" />
+                            </Border.Effect>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#66FF66"/>
-                    <!-- Lighter Green on Hover -->
+                    <Setter Property="Background" Value="#81C784"/>
+                    <!-- Softer Green on Hover -->
                 </Trigger>
             </Style.Triggers>
         </Style>
+
         <!-- Style for rounded TextBoxes with hover and focus effects -->
         <Style x:Key="RoundedTextBoxStyle" TargetType="TextBox">
             <Setter Property="Control.Template">
@@ -95,6 +107,10 @@
                                     <GradientStop Color="#EAEAEA" Offset="1.0"/>
                                 </LinearGradientBrush>
                             </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="2" BlurRadius="3" Opacity="0.3" />
+                            </Border.Effect>
+
                             <ScrollViewer x:Name="PART_ContentHost" />
                         </Border>
                     </ControlTemplate>
@@ -107,19 +123,54 @@
             <Setter Property="Background" Value="#4CAF50"/>
             <!-- Softer Green -->
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                        BorderBrush="{TemplateBinding BorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="20"
+                        Padding="5">
+                            <!-- Shadow effect for the button -->
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="3" BlurRadius="6" Opacity="0.4" />
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#81C784"/>
-                    <!-- Even Softer Green on Hover -->
+                    <!-- Softer Green on Hover -->
                 </Trigger>
             </Style.Triggers>
         </Style>
+
 
         <!-- Delete Button Style (Pastel Red) -->
         <Style x:Key="DeleteButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
             <Setter Property="Background" Value="#FF7043"/>
             <!-- Softer Pastel Red -->
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                        BorderBrush="{TemplateBinding BorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="20"
+                        Padding="5">
+                            <!-- Shadow effect for the button -->
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="3" BlurRadius="6" Opacity="0.4" />
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#FFAB91"/>
@@ -129,16 +180,35 @@
         </Style>
 
 
+
         <!-- Add New Drink Button Style (Blue) -->
         <Style x:Key="AddNewDrinkButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
             <Setter Property="Background" Value="DodgerBlue"/>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                        BorderBrush="{TemplateBinding BorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="20"
+                        Padding="5">
+                            <!-- Shadow effect for the button -->
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="3" BlurRadius="6" Opacity="0.4" />
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="LightSkyBlue"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
+
     </Window.Resources>
 
 
@@ -164,7 +234,7 @@
                             <!-- Add the background logo here -->
                             <Grid.Background>
                                 <ImageBrush ImageSource="pack://application:,,,/Resources/LogoZool.png"
-                                            Opacity="0.6"
+                                            Opacity="0.4"
                                             Stretch="UniformToFill"
                                             AlignmentX="Center"
                                             AlignmentY="Center"/>
@@ -182,7 +252,15 @@
                     <Border Grid.Column="1" Background="Black" Width="10" VerticalAlignment="Stretch" Margin="0" />
 
                     <!-- Right side: Scrollable Grid for ordered drinks and total sum -->
-                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Background="LightGray">
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#B0C4DE" Offset="0.0"/>
+                                <!-- Lighter -->
+                                <GradientStop Color="#778899" Offset="1.0"/>
+                                <!-- Darker -->
+                            </LinearGradientBrush>
+                        </ScrollViewer.Background>
                         <Grid Margin="20" >
 
                             <Grid.RowDefinitions>
@@ -228,14 +306,13 @@
                     <Grid>
                         <!-- Add the background logo here -->
                         <Grid.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#E1F5FE" Offset="0" />
-                                <!-- Light Sky Blue -->
-                                <GradientStop Color="#B3E5FC" Offset="1" />
-                                <!-- Pale Grey Blue -->
-                            </LinearGradientBrush>
-
+                            <SolidColorBrush Color="#FFF7E5" />
+                            <!-- Light muted peach -->
                         </Grid.Background>
+
+
+
+
                         <!-- Editable fields for drinks will be dynamically added here -->
                     <StackPanel x:Name="DrinksEditPanel" VerticalAlignment="Top" Margin="10" Grid.Row="0">
                         </StackPanel>
