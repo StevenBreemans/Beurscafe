@@ -80,6 +80,65 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <!-- Style for rounded TextBoxes with hover and focus effects -->
+        <Style x:Key="RoundedTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border BorderBrush="#DADADA" 
+                        BorderThickness="2" 
+                        CornerRadius="10" 
+                        Padding="5">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#F9F9F9" Offset="0.0"/>
+                                    <GradientStop Color="#EAEAEA" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <ScrollViewer x:Name="PART_ContentHost" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Save Button Style (Softer Green) -->
+        <Style x:Key="SaveButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
+            <Setter Property="Background" Value="#4CAF50"/>
+            <!-- Softer Green -->
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#81C784"/>
+                    <!-- Even Softer Green on Hover -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Delete Button Style (Pastel Red) -->
+        <Style x:Key="DeleteButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
+            <Setter Property="Background" Value="#FF7043"/>
+            <!-- Softer Pastel Red -->
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FFAB91"/>
+                    <!-- Lighter Pastel Red on Hover -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+
+        <!-- Add New Drink Button Style (Blue) -->
+        <Style x:Key="AddNewDrinkButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
+            <Setter Property="Background" Value="DodgerBlue"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="LightSkyBlue"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
 
@@ -165,11 +224,23 @@
 
             <!-- Tab for viewing and editing drinks -->
             <TabItem Header="View Edit Drinks">
+                <ScrollViewer>
                     <Grid>
+                        <!-- Add the background logo here -->
+                        <Grid.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#E1F5FE" Offset="0" />
+                                <!-- Light Sky Blue -->
+                                <GradientStop Color="#B3E5FC" Offset="1" />
+                                <!-- Pale Grey Blue -->
+                            </LinearGradientBrush>
+
+                        </Grid.Background>
                         <!-- Editable fields for drinks will be dynamically added here -->
                     <StackPanel x:Name="DrinksEditPanel" VerticalAlignment="Top" Margin="10" Grid.Row="0">
                         </StackPanel>
                     </Grid>
+                </ScrollViewer>
             </TabItem>
 
             <!-- Timer tab -->
