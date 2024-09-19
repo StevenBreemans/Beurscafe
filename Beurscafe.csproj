@@ -16,7 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Resources\beericon.ico" />
     <Content Include="Resources\WallStreetOpeningBell.wav">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -27,10 +26,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Resources\beericon.ico" />
-    <Resource Include="Resources\LogoZool.png">
+    <Resource Include="Resources\beericon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+    <Content Include="Resources\LogoZool.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

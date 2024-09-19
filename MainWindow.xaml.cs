@@ -472,7 +472,7 @@ namespace Beurscafe
 
         private void AdjustPriceForMostOrderedDrink(Drinks mostOrderedDrink, StringBuilder priceChangesMessage, Random random)
         {
-            double increase = GetRandomNumber(0.8, mostOrderedDrink.MaxPrice.Value - mostOrderedDrink.CurrentPrice.Value, random);
+            double increase = GetRandomNumber(1.2, mostOrderedDrink.MaxPrice.Value - mostOrderedDrink.CurrentPrice.Value, random);
             double oldPrice = mostOrderedDrink.CurrentPrice.Value;
             mostOrderedDrink.CurrentPrice = Math.Min(RoundUp(mostOrderedDrink.CurrentPrice.Value + increase), mostOrderedDrink.MaxPrice.Value);
             priceChangesMessage.AppendLine($"{mostOrderedDrink.Name}: gestegen met {mostOrderedDrink.CurrentPrice.Value - oldPrice:F2} EUR.");
