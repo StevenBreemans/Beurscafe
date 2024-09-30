@@ -248,7 +248,7 @@ namespace Beurscafe
                     if (int.TryParse(input, out int newMinutes))
                     {
                         // Set the new remaining time based on user input (Use TimeSpan.FromMinutes instead of FromSeconds)
-                        timeRemaining = TimeSpan.FromSeconds(newMinutes);
+                        timeRemaining = TimeSpan.FromMinutes(newMinutes);
                         UpdateTimerDisplay();  // Update the header with the new time
 
                         // Save the original custom time
@@ -533,7 +533,7 @@ namespace Beurscafe
                 HandleOrderedDrinksPriceAdjustment(sortedDrinks, priceChangesMessage, random);
             }
 
-            MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
+            //MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
 
             foreach (var drink in drinksList)
             {
