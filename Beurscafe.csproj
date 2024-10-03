@@ -12,6 +12,7 @@
   <ItemGroup>
     <None Remove="Resources\beericon.ico" />
     <None Remove="Resources\LogoZool.png" />
+    <None Remove="Resources\MarketCloseBell.wav" />
     <None Remove="Resources\WallStreetOpeningBell.wav" />
   </ItemGroup>
 
@@ -30,6 +31,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Content Include="Resources\LogoZool.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\MarketCloseBell.wav">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

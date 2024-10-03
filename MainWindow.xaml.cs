@@ -141,7 +141,7 @@ namespace Beurscafe
             try
             {
                 // Assuming the .wav file is in the Resources folder
-                string soundFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "WallStreetOpeningBell.wav");
+                string soundFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "MarketCloseBell.wav");
 
                 // Create a new SoundPlayer and play the sound
                 SoundPlayer player = new SoundPlayer(soundFilePath);
