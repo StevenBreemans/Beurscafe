@@ -11,6 +11,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.IO;
+using Newtonsoft.Json;
+
 
 using System.Media;  // Add this for SoundPlayer
 
@@ -42,6 +45,10 @@ namespace Beurscafe
         // Add flag to prevent simultaneous updates
         private bool syncingWithFirestore = false;
 
+        private int firestoreTimeRemaining;
+        private DateTime resetTime;
+
+
 
         public MainWindow()
         {
@@ -66,7 +73,7 @@ namespace Beurscafe
         {
             try
             {
-                // Fetch the drinks from Firestore
+                // Fetch the latest drinks from Firestore on startup
                 var fetchedDrinks = await firebaseManager.GetDrinksFromFirestore();
 
                 // If there are no drinks, show a message (optional)
@@ -76,55 +83,80 @@ namespace Beurscafe
                     return;
                 }
 
-                // Clear the current drinks list
+                // Clear the current drinks list and add the fetched drinks
                 drinksList.Clear();
-
-                // Add fetched drinks to the local drinks list
                 drinksList.AddRange(fetchedDrinks);
 
-                // Once drinks are fetched, update the UI
+                // Save the fetched drinks to the cache, overwriting any old cache
+                SaveDrinksToCache();
+
+                // Update the UI with the newly fetched drinks
                 PopulateOrderDrinksTab();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error fetching drinks from Firestore: " + ex.Message);
+
+                // If there's an error fetching data, try loading from the cache as a fallback
+                if (TryLoadDrinksFromCache())
+                {
+                    PopulateOrderDrinksTab();  // Use the cached data
+                }
             }
         }
+
+        private void SaveDrinksToCache()
+        {
+            string filePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "drinksCache.json");
+            File.WriteAllText(filePath, JsonConvert.SerializeObject(drinksList));
+        }
+
+        private bool TryLoadDrinksFromCache()
+        {
+            string filePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "drinksCache.json");
+
+            if (File.Exists(filePath))
+            {
+                drinksList = JsonConvert.DeserializeObject<List<Drinks>>(File.ReadAllText(filePath));
+                return true;
+            }
+
+            return false;
+        }
+
 
         private async void LoadTimerFromFirestore()
         {
             var (firestoreTimeRemaining, firestoreResetTime) = await firebaseManager.GetTimerFromFirestore();
 
-            // Calculate the elapsed time since the reset
-            TimeSpan elapsedTime = DateTime.UtcNow - firestoreResetTime;
-            timeRemaining = TimeSpan.FromSeconds(Math.Max(firestoreTimeRemaining - elapsedTime.TotalSeconds, 0));
-
-            // Update the timer display
-            UpdateTimerDisplay();
+            this.firestoreTimeRemaining = firestoreTimeRemaining;
+            this.resetTime = firestoreResetTime;
 
             // Start the timer
             StartTimer();
         }
 
-        // Firestore Listener Update handler
         private void OnFirestoreTimerUpdate(int newTimeRemaining, DateTime resetTime)
         {
-            // Prevent local updates while syncing with Firestore
+            // Ensure that syncing with Firestore doesn't cause conflicts
             syncingWithFirestore = true;
 
-            TimeSpan elapsedTime = DateTime.UtcNow - resetTime;
-            TimeSpan updatedTime = TimeSpan.FromSeconds(Math.Max(newTimeRemaining - elapsedTime.TotalSeconds, 0));
+            this.firestoreTimeRemaining = newTimeRemaining;
+            this.resetTime = resetTime;
 
-            // Only update the timer if there's a significant difference (2 seconds)
-            if (Math.Abs((updatedTime - timeRemaining).TotalSeconds) > 2)
-            {
-                timeRemaining = updatedTime;
-                UpdateTimerDisplay();
-            }
+            // Update timeRemaining based on new data
+            UpdateTimeRemaining();
 
-            // Sync complete, allow local updates again
             syncingWithFirestore = false;
         }
+
+        private void UpdateTimeRemaining()
+        {
+            TimeSpan elapsedTime = DateTime.UtcNow - resetTime;
+            timeRemaining = TimeSpan.FromSeconds(Math.Max(firestoreTimeRemaining - elapsedTime.TotalSeconds, 0));
+            UpdateTimerDisplay();
+        }
+
         // Start the timer, ensuring single event attachment
         private void StartTimer()
         {
@@ -156,50 +188,47 @@ namespace Beurscafe
 
 
         // Timer Tick event handler (local timer)
-        // Timer Tick event handler (local timer)
         private async void Timer_Tick(object? sender, EventArgs e)
         {
-            if (syncingWithFirestore) return; // Skip the local update if syncing with Firestore
+            if (syncingWithFirestore) return;
 
-            if (timeRemaining > TimeSpan.Zero)
-            {
-                timeRemaining = timeRemaining.Add(TimeSpan.FromSeconds(-1));
-                UpdateTimerDisplay(); // Local timer update
+            UpdateTimeRemaining();
 
-                // Update Firestore with the new time every second
-                await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
-            }
-            else
+            if (timeRemaining.TotalSeconds <= 0)
             {
                 // Timer reaches zero: play sound, adjust prices, reset orders, reset timer
                 PlaySound();
                 AdjustPrices();
                 ResetOrders();
+
+                // Reset the timer
                 timeRemaining = customTimerSet ? originalTimeRemaining : defaultTimeRemaining;
 
-                PopulateEditDrinksTab(); // Refresh the Edit Drinks tab to reflect price changes
-
-                // Sync the reset timer with Firestore
+                // Update Firestore with the new reset time and remaining time
                 await firebaseManager.UpdateTimerInFirestore((int)timeRemaining.TotalSeconds);
-                UpdateTimerDisplay();
+
+                // Update local variables
+                firestoreTimeRemaining = (int)timeRemaining.TotalSeconds;
+                resetTime = DateTime.UtcNow;
             }
         }
+
+
+
+
 
 
         // Reset orders for all drinks in the orderedDrinks list
         private async void ResetOrders()
         {
-            orderedDrinks.Clear();  // Clear the ordered drinks list
-
+            orderedDrinks.Clear();
             foreach (var drink in drinksList)
             {
-                drink.Orders = 0;  // Reset the order count for each drink in the drinks list
-
-                // Update Firestore to reset the orders for each drink
-                await firebaseManager.UpdateDrinkOrdersInFirestore(drink.Name, drink.Orders);
+                drink.Orders = 0;
             }
 
-            UpdateOrderCountDisplay();  // Update the right-side display after resetting
+            await firebaseManager.BatchUpdateDrinksInFirestore(drinksList);  // Batch update to reset orders
+            UpdateOrderCountDisplay();
         }
 
 
@@ -210,20 +239,19 @@ namespace Beurscafe
         {
             if (Dispatcher.CheckAccess())
             {
-                // Update the timer display directly if on UI thread
-                TabItem timerTabItem = (TabItem)MainTabControl.Items[2]; // Adjust the index if necessary
+                TabItem timerTabItem = (TabItem)MainTabControl.Items[2];
                 timerTabItem.Header = $"Resterende tijd: {timeRemaining:mm\\:ss}";
             }
             else
             {
-                // Safely update the UI from a non-UI thread
                 Dispatcher.Invoke(() =>
                 {
-                    TabItem timerTabItem = (TabItem)MainTabControl.Items[2]; // Adjust the index if necessary
+                    TabItem timerTabItem = (TabItem)MainTabControl.Items[2];
                     timerTabItem.Header = $"Resterende tijd: {timeRemaining:mm\\:ss}";
                 });
             }
         }
+
 
 
         // Event handler for TabControl SelectionChanged
@@ -248,7 +276,7 @@ namespace Beurscafe
                     if (int.TryParse(input, out int newMinutes))
                     {
                         // Set the new remaining time based on user input (Use TimeSpan.FromMinutes instead of FromSeconds)
-                        timeRemaining = TimeSpan.FromMinutes(newMinutes);
+                        timeRemaining = TimeSpan.FromSeconds(newMinutes);
                         UpdateTimerDisplay();  // Update the header with the new time
 
                         // Save the original custom time
@@ -498,19 +526,19 @@ namespace Beurscafe
         {
             foreach (var drink in remainingDrinks.Where(d => d.Orders >= 1))
             {
-                    double adjustment = GetRandomNumber(-0.8, 0.8, random);
-                    double oldPrice = drink.CurrentPrice.Value;
+                double adjustment = GetRandomNumber(-0.8, 0.8, random);
+                double oldPrice = drink.CurrentPrice.Value;
 
-                    if (adjustment > 0)
-                    {
-                        drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + adjustment), drink.MaxPrice.Value);
-                        priceChangesMessage.AppendLine($"{drink.Name}: gestegen met {drink.CurrentPrice.Value - oldPrice:F2} EUR.");
-                    }
-                    else
-                    {
-                        drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value + adjustment), drink.MinPrice.Value);
-                        priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
-                    }
+                if (adjustment > 0)
+                {
+                    drink.CurrentPrice = Math.Min(RoundUp(drink.CurrentPrice.Value + adjustment), drink.MaxPrice.Value);
+                    priceChangesMessage.AppendLine($"{drink.Name}: gestegen met {drink.CurrentPrice.Value - oldPrice:F2} EUR.");
+                }
+                else
+                {
+                    drink.CurrentPrice = Math.Max(RoundDown(drink.CurrentPrice.Value + adjustment), drink.MinPrice.Value);
+                    priceChangesMessage.AppendLine($"{drink.Name}: gedaald met {oldPrice - drink.CurrentPrice.Value:F2} EUR.");
+                }
             }
         }
 
@@ -533,13 +561,7 @@ namespace Beurscafe
                 HandleOrderedDrinksPriceAdjustment(sortedDrinks, priceChangesMessage, random);
             }
 
-            //MessageBox.Show(priceChangesMessage.ToString(), "Prijswijzigingen", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            foreach (var drink in drinksList)
-            {
-                await firebaseManager.AddDrinkToFirestore(drink);
-            }
-
+            await firebaseManager.BatchUpdateDrinksInFirestore(drinksList);  // Batch update drinks
             PopulateOrderDrinksTab();
         }
 
